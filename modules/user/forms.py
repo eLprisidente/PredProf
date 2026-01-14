@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, SelectField, IntegerField, TextAreaField, SubmitField, DateField, RadioField
-from wtforms.validators import DataRequired, NumberRange, Optional, Length
+from wtforms.validators import DataRequired, NumberRange, Optional, Length, Email
 from datetime import datetime
 
 
@@ -53,17 +54,42 @@ class FeedbackForm(FlaskForm):
 class ProfileForm(FlaskForm):
     """Форма редактирования профиля"""
     full_name = StringField('ФИО', validators=[
-        DataRequired(),
-        Length(min=2, max=100)
-    ])
+        DataRequired(message='Введите ваше имя'),
+        Length(min=2, max=100, message='Имя должно быть от 2 до 100 символов')
+    ], render_kw={"placeholder": "Иванов Иван Иванович"})
+
+    email = StringField('Email', validators=[
+        DataRequired(message='Введите email'),
+        Email(message='Некорректный email адрес'),
+        Length(max=120)
+    ], render_kw={"disabled": True})  # Email нельзя менять
 
     class_group = StringField('Класс', validators=[
-        DataRequired(),
-        Length(min=1, max=10)
-    ])
+        DataRequired(message='Укажите ваш класс'),
+        Length(min=1, max=10, message='Название класса должно быть от 1 до 10 символов')
+    ], render_kw={"placeholder": "10А"})
 
     allergies = TextAreaField('Аллергии и особенности питания',
                               validators=[Optional(), Length(max=500)],
-                              render_kw={"placeholder": "Перечислите аллергены через запятую"})
+                              render_kw={
+                                  "placeholder": "Перечислите аллергены через запятую (глютен, лактоза, орехи...)",
+                                  "rows": 3
+                              })
+
+    preferences = SelectField('Предпочтения в питании', choices=[
+        ('', 'Без предпочтений'),
+        ('vegetarian', 'Вегетарианское'),
+        ('vegan', 'Веганское'),
+        ('halal', 'Халяль'),
+        ('kosher', 'Кошерное'),
+        ('no_meat', 'Без мяса'),
+        ('no_fish', 'Без рыбы'),
+        ('no_dairy', 'Без молочных продуктов')
+    ], validators=[Optional()])
+
+    avatar = FileField('Аватар', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Разрешены только изображения (JPG, PNG, GIF)!')
+    ])
 
     submit = SubmitField('Сохранить изменения')

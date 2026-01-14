@@ -1,0 +1,639 @@
+{% extends "base.html" %}
+
+{% block title %}Управление пользователями{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header" style="margin-bottom: 30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+                    Управление пользователями
+                </h1>
+                <p style="color: #7f8c8d; font-size: 1rem;">Всего пользователей: {{ users|length }}</p>
+            </div>
+            <button class="btn btn-primary" onclick="showAddUserModal()">
+                <i class="bi bi-person-plus"></i> Добавить пользователя
+            </button>
+        </div>
+    </div>
+
+    <!-- Уведомления AJAX -->
+    <div id="ajaxAlert" style="display: none; margin-bottom: 20px;"></div>
+
+    <!-- Фильтры -->
+    <div class="dashboard-card" style="margin-bottom: 20px;">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Поиск по имени или email..." oninput="applyFilters()">
+            </div>
+            <div class="col-md-3">
+                <select id="roleFilter" class="form-control" onchange="applyFilters()">
+                    <option value="">Все роли</option>
+                    <option value="student">Ученик</option>
+                    <option value="cook">Повар</option>
+                    <option value="admin">Администратор</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="statusFilter" class="form-control" onchange="applyFilters()">
+                    <option value="">Все статусы</option>
+                    <option value="active">Активные</option>
+                    <option value="inactive">Неактивные</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline w-100" onclick="resetFilters()">
+                    <i class="bi bi-arrow-clockwise"></i> Сбросить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица пользователей -->
+    <div class="dashboard-card">
+        <div class="table-responsive">
+            <table class="admin-table" id="usersTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>ФИО</th>
+                        <th>Email</th>
+                        <th>Роль</th>
+                        <th>Класс</th>
+                        <th>Статус</th>
+                        <th>Дата регистрации</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr data-role="{{ user.role }}" data-status="{{ 'active' if user.is_active else 'inactive' }}" id="user-row-{{ user.id }}">
+                        <td>#{{ user.id }}</td>
+                        <td>{{ user.full_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user.role == 'admin' %}
+                                <span class="badge badge-danger">Админ</span>
+                            {% elif user.role == 'cook' %}
+                                <span class="badge badge-warning">Повар</span>
+                            {% else %}
+                                <span class="badge badge-info">Ученик</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.class_group or '-' }}</td>
+                        <td>
+                            {% if user.is_active %}
+                                <span class="status-indicator status-active"></span> Активен
+                            {% else %}
+                                <span class="status-indicator status-inactive"></span> Неактивен
+                            {% endif %}
+                        </td>
+                        <td>{{ user.created_at.strftime('%d.%m.%Y') if user.created_at else '' }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editUser({{ user.id }})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteUser({{ user.id }}, '{{ user.full_name }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно добавления пользователя -->
+<div class="modal-overlay" id="addUserModal" style="display: none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Добавить пользователя</h3>
+            <button type="button" class="close-btn" onclick="closeAddUserModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label>ФИО *</label>
+                    <input type="text" class="form-control" name="full_name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" class="form-control" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Роль *</label>
+                    <select class="form-control" name="role" required>
+                        <option value="student">Ученик</option>
+                        <option value="cook">Повар</option>
+                        <option value="admin">Администратор</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Пароль * (мин. 6 символов)</label>
+                    <input type="password" class="form-control" name="password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Класс/группа</label>
+                    <input type="text" class="form-control" name="class_group" placeholder="Например: 10А">
+                </div>
+                <div class="form-group">
+                    <label>Аллергии/особенности</label>
+                    <textarea class="form-control" name="allergies" rows="2" placeholder="Например: арахис, лактоза"></textarea>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="is_active" id="is_active" checked>
+                    <label class="form-check-label" for="is_active">Активный пользователь</label>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeAddUserModal()">Отмена</button>
+            <button type="button" class="btn btn-primary" onclick="addUser()">Добавить пользователя</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования пользователя -->
+<div class="modal-overlay" id="editUserModal" style="display: none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Редактировать пользователя</h3>
+            <button type="button" class="close-btn" onclick="closeEditUserModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editUserForm">
+                <input type="hidden" name="user_id" id="edit_user_id">
+                <div class="form-group">
+                    <label>ФИО *</label>
+                    <input type="text" class="form-control" name="full_name" id="edit_full_name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" class="form-control" name="email" id="edit_email" required>
+                </div>
+                <div class="form-group">
+                    <label>Роль *</label>
+                    <select class="form-control" name="role" id="edit_role" required>
+                        <option value="student">Ученик</option>
+                        <option value="cook">Повар</option>
+                        <option value="admin">Администратор</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Новый пароль (оставьте пустым, если не нужно менять)</label>
+                    <input type="password" class="form-control" name="password" id="edit_password" minlength="6">
+                    <small class="form-text text-muted">Минимум 6 символов</small>
+                </div>
+                <div class="form-group">
+                    <label>Класс/группа</label>
+                    <input type="text" class="form-control" name="class_group" id="edit_class_group">
+                </div>
+                <div class="form-group">
+                    <label>Аллергии/особенности</label>
+                    <textarea class="form-control" name="allergies" id="edit_allergies" rows="2"></textarea>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="is_active" id="edit_is_active">
+                    <label class="form-check-label" for="edit_is_active">Активный пользователь</label>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeEditUserModal()">Отмена</button>
+            <button type="button" class="btn btn-primary" onclick="updateUser()">Сохранить изменения</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-active {
+    background: #27ae60;
+}
+
+.status-inactive {
+    background: #e74c3c;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #7f8c8d;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #eee;
+    text-align: right;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.form-check {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.form-check-input {
+    margin-right: 8px;
+}
+
+.btn-group {
+    display: flex;
+    gap: 5px;
+}
+
+#ajaxAlert {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    animation: slideIn 0.3s ease;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    background: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 600;
+    padding: 15px;
+    text-align: left;
+    border-bottom: 2px solid #eaeaea;
+    position: sticky;
+    top: 0;
+}
+
+.admin-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.admin-table tr:hover {
+    background: #f8f9fa;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-danger {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// AJAX уведомления
+function showAlert(message, type = 'success') {
+    const alertDiv = document.getElementById('ajaxAlert');
+    alertDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>${message}</div>
+            <button type="button" class="close-btn" onclick="this.parentElement.parentElement.style.display='none'">&times;</button>
+        </div>
+    `;
+    alertDiv.style.display = 'block';
+    alertDiv.className = `alert alert-${type}`;
+
+    setTimeout(() => {
+        alertDiv.style.display = 'none';
+    }, 5000);
+}
+
+// Фильтрация таблицы
+function applyFilters() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const roleFilter = document.getElementById('roleFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('#usersTable tbody tr');
+
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const name = row.cells[1].textContent.toLowerCase();
+        const email = row.cells[2].textContent.toLowerCase();
+        const role = row.dataset.role;
+        const status = row.dataset.status;
+
+        const matchesSearch = name.includes(searchTerm) || email.includes(searchTerm);
+        const matchesRole = !roleFilter || role === roleFilter;
+        const matchesStatus = !statusFilter || status === statusFilter;
+
+        if (matchesSearch && matchesRole && matchesStatus) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Если нет результатов
+    if (visibleCount === 0 && (searchTerm || roleFilter || statusFilter)) {
+        const tbody = document.querySelector('#usersTable tbody');
+        if (!tbody.querySelector('.no-results')) {
+            const noResultsRow = document.createElement('tr');
+            noResultsRow.className = 'no-results';
+            noResultsRow.innerHTML = `
+                <td colspan="8" style="text-align: center; padding: 30px; color: #7f8c8d;">
+                    <i class="bi bi-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                    <h3>Нет результатов</h3>
+                    <p>Попробуйте изменить параметры поиска</p>
+                </td>
+            `;
+            tbody.appendChild(noResultsRow);
+        }
+    } else {
+        const noResultsRow = document.querySelector('.no-results');
+        if (noResultsRow) {
+            noResultsRow.remove();
+        }
+    }
+}
+
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('roleFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    applyFilters();
+}
+
+// Добавление пользователя
+function showAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'flex';
+}
+
+function closeAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'none';
+    document.getElementById('addUserForm').reset();
+}
+
+function addUser() {
+    const form = document.getElementById('addUserForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    data.is_active = document.querySelector('#addUserForm input[name="is_active"]').checked;
+
+    fetch('/admin/api/user/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showAlert(result.message, 'success');
+            closeAddUserModal();
+            // Обновляем страницу через 1 секунду
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(result.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Ошибка сети: ' + error.message, 'danger');
+    });
+}
+
+// Редактирование пользователя
+function editUser(userId) {
+    fetch(`/admin/api/user/${userId}`)
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Пользователь не найден');
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.success) {
+            const user = result.user;
+            document.getElementById('edit_user_id').value = user.id;
+            document.getElementById('edit_full_name').value = user.full_name;
+            document.getElementById('edit_email').value = user.email;
+            document.getElementById('edit_role').value = user.role;
+            document.getElementById('edit_class_group').value = user.class_group || '';
+            document.getElementById('edit_allergies').value = user.allergies || '';
+            document.getElementById('edit_is_active').checked = user.is_active;
+
+            document.getElementById('editUserModal').style.display = 'flex';
+        } else {
+            showAlert(result.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert(error.message, 'danger');
+    });
+}
+
+function closeEditUserModal() {
+    document.getElementById('editUserModal').style.display = 'none';
+}
+
+function updateUser() {
+    const form = document.getElementById('editUserForm');
+    const userId = document.getElementById('edit_user_id').value;
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    data.is_active = document.getElementById('edit_is_active').checked;
+
+    // Убираем пустой пароль
+    if (!data.password) {
+        delete data.password;
+    }
+
+    fetch(`/admin/api/user/${userId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showAlert(result.message, 'success');
+            closeEditUserModal();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(result.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Ошибка сети: ' + error.message, 'danger');
+    });
+}
+
+// Удаление пользователя
+function confirmDeleteUser(userId, userName) {
+    if (confirm(`Вы уверены, что хотите удалить пользователя "${userName}"?`)) {
+        fetch(`/admin/api/user/${userId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert(result.message, 'success');
+                // Удаляем строку из таблицы
+                const row = document.getElementById(`user-row-${userId}`);
+                if (row) {
+                    row.remove();
+                }
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Ошибка сети: ' + error.message, 'danger');
+        });
+    }
+}
+
+// Инициализация фильтров при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    applyFilters();
+});
+</script>
+{% endblock %}

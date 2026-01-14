@@ -19,7 +19,8 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
 
         if user and check_password_hash(user.password, form.password.data):
-            login_user(user, remember=form.remember.data)
+            # Исправлено: form.remember_me.data вместо form.remember.data
+            login_user(user, remember=form.remember_me.data)
             flash(f'Добро пожаловать, {user.full_name}!', 'success')
 
             if user.role == 'student':

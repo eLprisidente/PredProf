@@ -3,7 +3,81 @@
 {% block title %}Заявки на поставку{% endblock %}
 
 {% block content %}
-<h1>Заявки на поставку</h1>
-<p>Страница в разработке...</p>
-<a href="{{ url_for('cook.dashboard') }}" class="btn">Назад</a>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Заявки на поставку</h1>
+        <div>
+            <a href="{{ url_for('cook.new_supply_request') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Новая заявка
+            </a>
+            <a href="{{ url_for('cook.check_low_stock') }}" class="btn btn-warning">
+                <i class="bi bi-exclamation-triangle"></i> Автозаявки
+            </a>
+        </div>
+    </div>
+
+    {% if requests %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Продукт</th>
+                    <th>Количество</th>
+                    <th>Статус</th>
+                    <th>Срочность</th>
+                    <th>Примечания</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td>{{ req.created_at.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ req.product_name }}</td>
+                    <td>{{ req.quantity }} {{ req.unit }}</td>
+                    <td>
+                        {% if req.status == 'pending' %}
+                        <span class="badge bg-warning">Ожидание</span>
+                        {% elif req.status == 'approved' %}
+                        <span class="badge bg-success">Одобрено</span>
+                        {% elif req.status == 'rejected' %}
+                        <span class="badge bg-danger">Отклонено</span>
+                        {% elif req.status == 'delivered' %}
+                        <span class="badge bg-info">Доставлено</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if req.urgency == 'critical' %}
+                        <span class="badge bg-danger">Критическая</span>
+                        {% elif req.urgency == 'high' %}
+                        <span class="badge bg-warning">Высокая</span>
+                        {% elif req.urgency == 'low' %}
+                        <span class="badge bg-secondary">Низкая</span>
+                        {% else %}
+                        <span class="badge bg-primary">Обычная</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ req.notes|default('', true)|truncate(50) }}</td>
+                    <td>
+                        {% if req.status == 'pending' %}
+                        <form action="{{ url_for('cook.cancel_supply_request', request_id=req.id) }}"
+                              method="POST"
+                              style="display: inline;"
+                              onsubmit="return confirm('Отменить заявку?');">
+                            <button type="submit" class="btn btn-sm btn-danger">Отменить</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Нет заявок на поставку.
+    </div>
+    {% endif %}
+</div>
 {% endblock %}

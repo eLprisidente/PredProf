@@ -14,6 +14,9 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(100))
     class_group = db.Column(db.String(50))  # Только для учеников
     allergies = db.Column(db.Text, default='')  # JSON или текст с аллергенами
+    preferences = db.Column(db.String(50), default='')  # Новое поле: предпочтения в питании
+    avatar_url = db.Column(db.String(255))  # Новое поле: путь к аватару
+    balance = db.Column(db.Float, default=0.0)  # Новое поле: баланс счета
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

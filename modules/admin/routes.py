@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from modules.core.database import db
 from datetime import datetime, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, or_
+import json
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -125,36 +126,6 @@ def admin_supply_requests():
     return render_template('admin/supply_requests.html', requests=requests)
 
 
-@admin_bp.route('/supply-request/<int:request_id>/approve', methods=['GET', 'POST'])
-@login_required
-def approve_supply_request(request_id):
-    if current_user.role != 'admin':
-        flash('Доступ запрещен', 'danger')
-        return redirect(url_for('index'))
-
-    from modules.core.models import SupplyRequest
-    from .forms import ApprovalForm
-
-    supply_request = SupplyRequest.query.get_or_404(request_id)
-    form = ApprovalForm()
-
-    if form.validate_on_submit():
-        supply_request.status = form.status.data
-        supply_request.approved_by = current_user.id
-        supply_request.approval_date = datetime.utcnow()
-
-        if form.notes.data:
-            supply_request.notes = (supply_request.notes or '') + f"\n[Админ]: {form.notes.data}"
-
-        db.session.commit()
-
-        status_text = "утверждена" if form.status.data == 'approved' else "отклонена"
-        flash(f'Заявка #{supply_request.id} {status_text}', 'success')
-        return redirect(url_for('admin.admin_supply_requests'))
-
-    return render_template('admin/approve_request.html', form=form, request=supply_request)
-
-
 @admin_bp.route('/reports', methods=['GET', 'POST'])
 @login_required
 def generate_reports():
@@ -186,36 +157,6 @@ def manage_users():
     return render_template('admin/users.html', users=users_list)
 
 
-@admin_bp.route('/user/<int:user_id>/manage', methods=['GET', 'POST'])
-@login_required
-def manage_user(user_id):
-    if current_user.role != 'admin':
-        flash('Доступ запрещен', 'danger')
-        return redirect(url_for('index'))
-
-    from modules.core.models import User
-    from .forms import UserManagementForm
-
-    user = User.query.get_or_404(user_id)
-    form = UserManagementForm()
-
-    if form.validate_on_submit():
-        if form.action.data == 'deactivate':
-            user.is_active = False
-            flash(f'Пользователь {user.email} деактивирован', 'success')
-        elif form.action.data == 'activate':
-            user.is_active = True
-            flash(f'Пользователь {user.email} активирован', 'success')
-        elif form.action.data == 'change_role' and form.new_role.data:
-            user.role = form.new_role.data
-            flash(f'Роль пользователя {user.email} изменена на {form.new_role.data}', 'success')
-
-        db.session.commit()
-        return redirect(url_for('admin.manage_users'))
-
-    return render_template('admin/manage_user.html', form=form, user=user)
-
-
 @admin_bp.route('/feedback')
 @login_required
 def view_feedback():
@@ -229,79 +170,499 @@ def view_feedback():
     return render_template('admin/feedback.html', feedback_list=feedback_list)
 
 
-@admin_bp.route('/report/generate', methods=['POST'])
+@admin_bp.route('/api/user/<int:user_id>')
 @login_required
-def generate_report():
+def get_user_api(user_id):
+    """API для получения данных пользователя"""
     if current_user.role != 'admin':
-        flash('Доступ запрещен', 'danger')
-        return redirect(url_for('index'))
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
 
-    from modules.core.models import Order, User, MenuItem, SupplyRequest
-    from datetime import datetime, timedelta
+    from modules.core.models import User
 
-    report_type = request.form.get('report_type', 'daily')
-    start_date = request.form.get('start_date')
-    end_date = request.form.get('end_date')
+    user = User.query.get_or_404(user_id)
 
-    if report_type == 'daily':
-        start_date = datetime.today().date()
-        end_date = start_date
-    elif report_type == 'weekly':
-        end_date = datetime.today().date()
-        start_date = end_date - timedelta(days=7)
-    elif report_type == 'monthly':
-        end_date = datetime.today().date()
-        start_date = end_date - timedelta(days=30)
-    elif report_type == 'custom' and start_date and end_date:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-    else:
-        flash('Неверные параметры отчета', 'danger')
-        return redirect(url_for('admin.admin_dashboard'))
+    return jsonify({
+        'success': True,
+        'user': {
+            'id': user.id,
+            'full_name': user.full_name,
+            'email': user.email,
+            'role': user.role,
+            'class_group': user.class_group,
+            'allergies': user.allergies,
+            'is_active': user.is_active,
+            'created_at': user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else None
+        }
+    })
 
-    orders = Order.query.filter(
-        Order.order_date >= start_date,
-        Order.order_date <= end_date
-    ).all()
 
-    orders_stats = {
-        'total': len(orders),
-        'paid': len([o for o in orders if o.payment_status == 'paid']),
-        'received': len([o for o in orders if o.status == 'received']),
-        'revenue': sum(o.menu_item.price * o.quantity for o in orders if o.payment_status == 'paid')
-    }
+@admin_bp.route('/api/user/add', methods=['POST'])
+@login_required
+def api_add_user():
+    """API для добавления нового пользователя"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
 
-    users_with_orders = User.query.filter(
-        User.orders.any(Order.order_date >= start_date)
-    ).all()
+    try:
+        from modules.core.models import User
+        from modules.auth.utils import hash_password
 
-    supply_requests = SupplyRequest.query.filter(
-        SupplyRequest.created_at >= datetime.combine(start_date, datetime.min.time()),
-        SupplyRequest.created_at <= datetime.combine(end_date, datetime.max.time())
-    ).all()
+        data = request.json
 
-    supply_stats = {
-        'total': len(supply_requests),
-        'approved': len([r for r in supply_requests if r.status == 'approved']),
-        'pending': len([r for r in supply_requests if r.status == 'pending']),
-        'total_cost': 0
-    }
+        # Валидация данных
+        required_fields = ['full_name', 'email', 'password', 'role']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'success': False, 'error': f'Отсутствует поле: {field}'}), 400
 
-    report = {
-        'title': f'Отчет за период с {start_date} по {end_date}',
-        'period': {
-            'start_date': start_date.strftime('%d.%m.%Y'),
-            'end_date': end_date.strftime('%d.%m.%Y'),
-            'days': (end_date - start_date).days + 1
-        },
-        'orders': orders_stats,
-        'users': {
-            'active': len(users_with_orders),
-            'total': User.query.count()
-        },
-        'supply_requests': supply_stats,
-        'generated_at': datetime.now().strftime('%d.%m.%Y %H:%M'),
-        'generated_by': current_user.full_name
-    }
+        # Проверяем email
+        if not '@' in data['email']:
+            return jsonify({'success': False, 'error': 'Некорректный email'}), 400
 
-    return render_template('admin/report_view.html', report=report)
+        # Проверяем, существует ли пользователь с таким email
+        existing_user = User.query.filter_by(email=data['email']).first()
+        if existing_user:
+            return jsonify({'success': False, 'error': 'Пользователь с таким email уже существует'}), 400
+
+        # Проверяем пароль
+        if len(data['password']) < 6:
+            return jsonify({'success': False, 'error': 'Пароль должен быть не менее 6 символов'}), 400
+
+        # Создаем нового пользователя
+        new_user = User(
+            email=data['email'],
+            password_hash=hash_password(data['password']),
+            full_name=data['full_name'],
+            role=data['role'],
+            is_active=data.get('is_active', True),
+            allergies=data.get('allergies', ''),
+            class_group=data.get('class_group', '')
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Пользователь {new_user.full_name} успешно создан',
+            'user_id': new_user.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/user/<int:user_id>/update', methods=['POST'])
+@login_required
+def api_update_user(user_id):
+    """API для обновления пользователя"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    try:
+        from modules.core.models import User
+        from modules.auth.utils import hash_password
+
+        user = User.query.get_or_404(user_id)
+        data = request.json
+
+        # Обновляем поля
+        if 'full_name' in data:
+            user.full_name = data['full_name']
+        if 'email' in data and data['email'] != user.email:
+            # Проверяем, не занят ли email
+            existing = User.query.filter_by(email=data['email']).first()
+            if existing and existing.id != user_id:
+                return jsonify({'success': False, 'error': 'Email уже используется другим пользователем'}), 400
+            user.email = data['email']
+        if 'role' in data:
+            user.role = data['role']
+        if 'is_active' in data:
+            user.is_active = bool(data['is_active'])
+        if 'allergies' in data:
+            user.allergies = data['allergies']
+        if 'class_group' in data:
+            user.class_group = data['class_group']
+
+        # Если нужно обновить пароль
+        if 'password' in data and data['password']:
+            if len(data['password']) >= 6:
+                user.password_hash = hash_password(data['password'])
+            else:
+                return jsonify({'success': False, 'error': 'Пароль должен быть не менее 6 символов'}), 400
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Пользователь {user.full_name} обновлен'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/user/<int:user_id>/delete', methods=['POST'])
+@login_required
+def api_delete_user(user_id):
+    """API для удаления пользователя"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    try:
+        from modules.core.models import User, Order
+
+        user = User.query.get_or_404(user_id)
+
+        # Нельзя удалить самого себя
+        if user.id == current_user.id:
+            return jsonify({'success': False, 'error': 'Нельзя удалить свою учетную запись'}), 400
+
+        # Проверяем, есть ли связанные заказы
+        order_count = Order.query.filter_by(user_id=user_id).count()
+
+        if order_count > 0:
+            # Если есть заказы, делаем пользователя неактивным
+            user.is_active = False
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'Пользователь {user.full_name} деактивирован (имеет {order_count} заказов)',
+                'action': 'deactivated'
+            })
+        else:
+            # Если заказов нет, удаляем полностью
+            user_name = user.full_name
+            db.session.delete(user)
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'Пользователь {user_name} удален',
+                'action': 'deleted'
+            })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/supply-request/<int:request_id>/details')
+@login_required
+def get_supply_request_details(request_id):
+    """API для получения деталей заявки"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    from modules.core.models import SupplyRequest
+
+    supply_request = SupplyRequest.query.get_or_404(request_id)
+
+    urgency_text = {
+        'high': 'Высокая',
+        'medium': 'Средняя',
+        'low': 'Низкая'
+    }.get(supply_request.urgency, 'Не указана')
+
+    return jsonify({
+        'success': True,
+        'request': {
+            'id': supply_request.id,
+            'product_name': supply_request.product_name,
+            'category': supply_request.category,
+            'quantity': supply_request.quantity,
+            'unit': supply_request.unit,
+            'supplier': supply_request.supplier,
+            'urgency': supply_request.urgency,
+            'urgency_text': urgency_text,
+            'reason': supply_request.reason,
+            'notes': supply_request.notes,
+            'status': supply_request.status,
+            'cook_name': supply_request.cook.full_name if supply_request.cook else 'Неизвестно',
+            'created_at': supply_request.created_at.strftime('%d.%m.%Y %H:%M') if supply_request.created_at else '',
+            'approved_by': supply_request.approved_by,
+            'approval_date': supply_request.approval_date.strftime(
+                '%d.%m.%Y %H:%M') if supply_request.approval_date else ''
+        }
+    })
+
+
+@admin_bp.route('/api/supply-request/<int:request_id>/process', methods=['POST'])
+@login_required
+def api_process_supply_request(request_id):
+    """API для обработки заявки на закупку"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    try:
+        from modules.core.models import SupplyRequest, Inventory
+
+        supply_request = SupplyRequest.query.get_or_404(request_id)
+        data = request.json
+
+        if 'status' not in data:
+            return jsonify({'success': False, 'error': 'Не указан статус'}), 400
+
+        old_status = supply_request.status
+        supply_request.status = data['status']
+        supply_request.approved_by = current_user.id
+        supply_request.approval_date = datetime.utcnow()
+
+        if 'notes' in data and data['notes']:
+            supply_request.notes = (supply_request.notes or '') + f"\n[Админ {current_user.full_name}]: {data['notes']}"
+
+        # Если заявка утверждена, обновляем инвентарь
+        if data['status'] == 'approved':
+            # Ищем существующую запись в инвентаре
+            inventory_item = Inventory.query.filter_by(
+                product_name=supply_request.product_name
+            ).first()
+
+            if inventory_item:
+                # Обновляем количество
+                inventory_item.current_quantity += supply_request.quantity
+                inventory_item.last_updated = datetime.utcnow()
+            else:
+                # Создаем новую запись
+                inventory_item = Inventory(
+                    product_name=supply_request.product_name,
+                    current_quantity=supply_request.quantity,
+                    unit=supply_request.unit,
+                    min_quantity=supply_request.quantity * 0.5,  # 50% от заказанного
+                    category=supply_request.category,
+                    supplier=supply_request.supplier
+                )
+                db.session.add(inventory_item)
+
+        db.session.commit()
+
+        status_text = "утверждена" if data['status'] == 'approved' else "отклонена"
+
+        return jsonify({
+            'success': True,
+            'message': f'Заявка #{supply_request.id} {status_text}',
+            'new_status': data['status']
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/supply-request/<int:request_id>/delete', methods=['POST'])
+@login_required
+def api_delete_supply_request(request_id):
+    """API для удаления заявки на закупку"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    try:
+        from modules.core.models import SupplyRequest
+
+        supply_request = SupplyRequest.query.get_or_404(request_id)
+
+        # Можно удалять только отклоненные или устаревшие заявки
+        if supply_request.status == 'approved':
+            return jsonify({'success': False, 'error': 'Нельзя удалить утвержденную заявку'}), 400
+
+        db.session.delete(supply_request)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Заявка #{supply_request.id} удалена'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/report/generate', methods=['POST'])
+@login_required
+def api_generate_report():
+    """API для генерации отчета"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    try:
+        from modules.core.models import Order, User, MenuItem, SupplyRequest
+
+        data = request.json
+        report_type = data.get('report_type', 'daily')
+
+        # Определяем период
+        if report_type == 'daily':
+            start_date = datetime.today().date()
+            end_date = start_date
+        elif report_type == 'weekly':
+            end_date = datetime.today().date()
+            start_date = end_date - timedelta(days=7)
+        elif report_type == 'monthly':
+            end_date = datetime.today().date()
+            start_date = end_date - timedelta(days=30)
+        elif report_type == 'custom':
+            start_date = datetime.strptime(data.get('start_date'), '%Y-%m-%d').date()
+            end_date = datetime.strptime(data.get('end_date'), '%Y-%m-%d').date()
+        else:
+            return jsonify({'success': False, 'error': 'Неверный тип отчета'}), 400
+
+        # Собираем статистику по заказам
+        orders = Order.query.filter(
+            Order.order_date >= start_date,
+            Order.order_date <= end_date
+        ).all()
+
+        orders_stats = {
+            'total': len(orders),
+            'paid': len([o for o in orders if o.payment_status == 'paid']),
+            'received': len([o for o in orders if o.status == 'received']),
+            'revenue': sum(o.menu_item.price * o.quantity for o in orders if o.payment_status == 'paid')
+        }
+
+        # Статистика по пользователям
+        users_with_orders = User.query.filter(
+            User.orders.any(Order.order_date >= start_date)
+        ).all()
+
+        # Статистика по заявкам на закупку
+        supply_requests = SupplyRequest.query.filter(
+            SupplyRequest.created_at >= datetime.combine(start_date, datetime.min.time()),
+            SupplyRequest.created_at <= datetime.combine(end_date, datetime.max.time())
+        ).all()
+
+        supply_stats = {
+            'total': len(supply_requests),
+            'approved': len([r for r in supply_requests if r.status == 'approved']),
+            'pending': len([r for r in supply_requests if r.status == 'pending']),
+            'rejected': len([r for r in supply_requests if r.status == 'rejected']),
+            'total_cost': sum(r.estimated_cost or 0 for r in supply_requests if r.status == 'approved')
+        }
+
+        # Популярные блюда
+        popular_dishes = db.session.query(
+            Order.menu_item_id,
+            db.func.count(Order.id).label('orders_count'),
+            db.func.sum(Order.quantity).label('total_quantity')
+        ).filter(
+            Order.order_date >= start_date,
+            Order.payment_status == 'paid'
+        ).group_by(
+            Order.menu_item_id
+        ).order_by(
+            db.func.count(Order.id).desc()
+        ).limit(10).all()
+
+        popular_dishes_data = []
+        for dish in popular_dishes:
+            menu_item = MenuItem.query.get(dish.menu_item_id)
+            if menu_item:
+                popular_dishes_data.append({
+                    'name': menu_item.name,
+                    'orders_count': dish.orders_count,
+                    'total_quantity': dish.total_quantity,
+                    'revenue': menu_item.price * dish.total_quantity
+                })
+
+        report = {
+            'title': f'Отчет за период с {start_date.strftime("%d.%m.%Y")} по {end_date.strftime("%d.%m.%Y")}',
+            'period': {
+                'start_date': start_date.strftime('%d.%m.%Y'),
+                'end_date': end_date.strftime('%d.%m.%Y'),
+                'days': (end_date - start_date).days + 1
+            },
+            'orders': orders_stats,
+            'users': {
+                'active': len(users_with_orders),
+                'total': User.query.count()
+            },
+            'supply_requests': supply_stats,
+            'popular_dishes': popular_dishes_data,
+            'generated_at': datetime.now().strftime('%d.%m.%Y %H:%M'),
+            'generated_by': current_user.full_name
+        }
+
+        return jsonify({
+            'success': True,
+            'report': report,
+            'download_url': f'/admin/api/report/download/{int(datetime.now().timestamp())}'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/report/download/<int:timestamp>')
+@login_required
+def download_report(timestamp):
+    """API для скачивания отчета"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    from flask import make_response
+    import json
+
+    # Здесь можно реализовать генерацию PDF/Excel
+    # Пока просто возвращаем JSON
+    response = make_response(json.dumps({'message': 'Report file would be here'}, ensure_ascii=False))
+    response.headers['Content-Type'] = 'application/json'
+    response.headers['Content-Disposition'] = f'attachment; filename=report_{timestamp}.json'
+
+    return response
+
+
+@admin_bp.route('/api/feedback/<int:feedback_id>/delete', methods=['POST'])
+@login_required
+def delete_feedback(feedback_id):
+    """API для удаления отзыва"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    try:
+        from modules.core.models import Feedback
+
+        feedback = Feedback.query.get_or_404(feedback_id)
+        db.session.delete(feedback)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Отзыв удален'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/feedback/<int:feedback_id>/reply', methods=['POST'])
+@login_required
+def reply_to_feedback(feedback_id):
+    """API для ответа на отзыв"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    try:
+        from modules.core.models import Feedback
+
+        feedback = Feedback.query.get_or_404(feedback_id)
+        data = request.json
+
+        if 'reply' not in data or not data['reply']:
+            return jsonify({'success': False, 'error': 'Введите текст ответа'}), 400
+
+        feedback.admin_reply = data['reply']
+        feedback.replied_at = datetime.utcnow()
+        feedback.replied_by = current_user.id
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Ответ сохранен'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500

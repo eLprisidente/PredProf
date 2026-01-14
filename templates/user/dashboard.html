@@ -1,62 +1,174 @@
 {% extends "base.html" %}
 
-{% block title %}Личный кабинет ученика{% endblock %}
+{% block title %}Главная панель{% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
-    <h1>Личный кабинет ученика</h1>
-    <p>Добро пожаловать, {{ current_user.full_name }} ({{ current_user.class_group }})</p>
+<div class="dashboard-header" style="margin-bottom: 30px;">
+    <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+        Добро пожаловать, {{ current_user.full_name }}!
+    </h1>
 </div>
 
-<div class="dashboard-cards">
-    <div class="dashboard-card">
-        <h3 class="card-title">Сегодняшние заказы</h3>
-        {% if orders %}
-            <ul style="list-style: none; padding: 0;">
-                {% for order in orders %}
-                <li style="padding: 10px; border-bottom: 1px solid #eee;">
-                    <strong>{{ order.meal_time|capitalize }}</strong>:
-                    {{ order.menu_item.name }} - {{ order.menu_item.price }} руб.
-                    <span style="float: right; color: {% if order.status == 'received' %}green{% else %}orange{% endif %};">
-                        {{ order.status|capitalize }}
-                    </span>
-                </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>У вас нет заказов на сегодня.</p>
-            <a href="{{ url_for('user.show_menu') }}" class="btn">Посмотреть меню</a>
-        {% endif %}
-    </div>
+<div class="dashboard-grid">
+    <!-- Левая колонка: История заказов -->
+    <div class="dashboard-column">
+        <div class="dashboard-card">
+            <h2><i class="bi bi-clock-history"></i> История заказов</h2>
+            {% if orders %}
+                <div class="orders-history-scroll">
+                    {% for order in orders[:5] %}
+                    <div class="order-history-item">
+                        <div class="order-date">
+                            <i class="bi bi-calendar"></i> {{ order.order_date.strftime('%d.%m.%Y') }}
+                            <i class="bi bi-{{ 'sun' if order.meal_time == 'breakfast' else 'moon' }}"></i>
+                        </div>
+                        <div class="order-item-name">{{ order.menu_item.name }}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                            <span class="order-price">
+                                {{ order.total_price or (order.menu_item.price * order.quantity) }} ₽
+                            </span>
+                            <span class="order-status status-{{ order.payment_status }}">
+                                {% if order.payment_status == 'paid' %}
+                                    Оплачено
+                                {% else %}
+                                    Ожидает
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
 
-    <div class="dashboard-card">
-        <h3 class="card-title">Быстрые действия</h3>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <a href="{{ url_for('user.show_menu') }}" class="btn">Посмотреть меню</a>
-            <a href="{{ url_for('user.create_order') }}" class="btn btn-success">Сделать заказ</a>
-            <a href="{{ url_for('user.my_orders') }}" class="btn">История заказов</a>
-            <a href="{{ url_for('user.profile') }}" class="btn">Мой профиль</a>
+                {% if orders|length > 5 %}
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="{{ url_for('user.my_orders') }}" class="btn btn-outline">
+                        Все заказы ({{ orders|length }})
+                    </a>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-receipt"></i>
+                    <h3>Нет заказов</h3>
+                    <p>У вас пока не было заказов</p>
+                    <a href="{{ url_for('user.show_menu') }}" class="btn" style="margin-top: 15px;">
+                        Сделать первый заказ
+                    </a>
+                </div>
+            {% endif %}
         </div>
     </div>
 
-    <div class="dashboard-card">
-        <h3 class="card-title">Меню на сегодня</h3>
-        {% if menu_items %}
-            <ul style="list-style: none; padding: 0;">
-                {% for item in menu_items[:5] %}
-                <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-                    <strong>{{ item.name }}</strong><br>
-                    <small>{{ item.description[:50] }}...</small><br>
-                    <span style="color: #27ae60; font-weight: bold;">{{ item.price }} руб.</span>
-                </li>
-                {% endfor %}
-            </ul>
-            <a href="{{ url_for('user.show_menu') }}" style="display: block; margin-top: 10px; text-align: center;">
-                Показать все блюда
-            </a>
-        {% else %}
-            <p>Меню пока не доступно.</p>
-        {% endif %}
+    <!-- Центральная колонка: Основные действия -->
+    <div class="dashboard-column">
+        <div class="dashboard-card">
+            <h2><i class="bi bi-lightning"></i> Быстрые действия</h2>
+            <div class="action-buttons-grid">
+                <a href="{{ url_for('user.show_menu') }}" class="action-button menu">
+                    <i class="bi bi-menu-button-wide"></i>
+                    Просмотреть меню
+                </a>
+
+                <a href="{{ url_for('user.view_cart') }}" class="action-button cart">
+                    <i class="bi bi-cart3"></i>
+                    {% if cart_count and cart_count > 0 %}
+                        Корзина ({{ cart_count }})
+                    {% else %}
+                        Корзина
+                    {% endif %}
+                </a>
+
+                <a href="{{ url_for('user.my_orders') }}" class="action-button orders">
+                    <i class="bi bi-receipt"></i>
+                    Мои заказы
+                </a>
+
+                <a href="{{ url_for('user.profile') }}" class="action-button profile">
+                    <i class="bi bi-person-circle"></i>
+                    Мой профиль
+                </a>
+            </div>
+
+            {% if current_user.allergies %}
+            <div class="allergies-info">
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <div>
+                        <div style="font-weight: 600; color: #d35400; font-size: 1rem;">
+                            Важная информация
+                        </div>
+                        <div class="allergies-text">
+                            У вас указаны аллергии: {{ current_user.allergies }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Правая колонка: Меню на сегодня -->
+    <div class="dashboard-column">
+        <div class="dashboard-card">
+            <h2><i class="bi bi-egg-fried"></i> Меню на сегодня</h2>
+
+            {% if today_menu_items %}
+            <div class="today-menu-scroll">
+                <div class="menu-items-list">
+                    {% for item in today_menu_items[:4] %}
+                    <div class="menu-item-card">
+                        <div class="menu-item-header">
+                            <div class="menu-item-name">{{ item.name }}</div>
+                            <div class="menu-item-price">{{ item.price }} ₽</div>
+                        </div>
+
+                        <div class="menu-item-description">
+                            {{ item.description|truncate(70) }}
+                        </div>
+
+                        <div class="menu-item-footer">
+                            <span class="menu-item-category category-{{ item.category }}">
+                                {% if item.category == 'breakfast' %}
+                                    <i class="bi bi-sun"></i> Завтрак
+                                {% else %}
+                                    <i class="bi bi-moon"></i> Обед
+                                {% endif %}
+                            </span>
+
+                            <form action="{{ url_for('user.add_to_cart', item_id=item.id) }}" method="POST">
+                                <button type="submit" class="add-to-cart-btn">
+                                    <i class="bi bi-cart-plus"></i> В корзину
+                                </button>
+                            </form>
+                        </div>
+
+                        {% if item.allergens %}
+                        <div style="margin-top: 12px; padding: 8px 12px; background: rgba(231, 76, 60, 0.1);
+                                    border-radius: 8px; border-left: 3px solid #e74c3c;">
+                            <div style="font-size: 0.85rem; color: #e74c3c; font-weight: 600;">
+                                <i class="bi bi-exclamation-triangle"></i> Аллергены:
+                            </div>
+                            <div style="font-size: 0.8rem; color: #c0392b;">{{ item.allergens }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="{{ url_for('user.show_menu') }}" class="btn btn-outline">
+                    Полное меню
+                </a>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-egg-fried"></i>
+                <h3>Меню не готово</h3>
+                <p>Меню на сегодня еще не сформировано</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

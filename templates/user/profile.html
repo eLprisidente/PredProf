@@ -1,6 +1,134 @@
 {% extends "base.html" %}
-{% block title %}Профиль{% endblock %}
+
+{% block title %}Мой профиль{% endblock %}
+
 {% block content %}
-<h1>Профиль</h1>
-<p>Настройки профиля</p>
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="avatar-container">
+            {% if current_user.avatar_url %}
+            <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.avatar_url) }}"
+                 alt="{{ current_user.full_name }}" class="avatar-large">
+            {% else %}
+            <div class="avatar-placeholder">
+                {{ current_user.full_name[0]|upper }}
+            </div>
+            {% endif %}
+
+            <label for="avatar-input" class="avatar-upload">
+                <i class="bi bi-camera-fill"></i>
+                <input type="file" id="avatar-input" name="avatar" accept="image/*"
+                       style="display: none;" form="profile-form" onchange="this.form.submit()">
+            </label>
+        </div>
+
+        <div class="profile-info">
+            <h2>{{ current_user.full_name }}</h2>
+            <div class="profile-email">
+                <i class="bi bi-envelope"></i> {{ current_user.email }}
+            </div>
+            <div style="margin-top: 10px; color: #7f8c8d;">
+                <i class="bi bi-geo-alt"></i> Класс: {{ current_user.class_group or 'Не указан' }}
+            </div>
+
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-value">{{ orders_count }}</span>
+                    <span class="stat-label">Всего заказов</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{{ today_orders_count }}</span>
+                    <span class="stat-label">Заказов сегодня</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('user.profile') }}" id="profile-form" class="profile-form" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+
+        <div class="form-section">
+            <h3><i class="bi bi-person"></i> Личная информация</h3>
+
+            <div class="form-group">
+                {{ form.full_name.label(class="form-label") }}
+                {{ form.full_name(class="form-control") }}
+                {% for error in form.full_name.errors %}
+                <div style="color: #e74c3c; font-size: 0.85rem; margin-top: 5px;">
+                    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                {{ form.class_group.label(class="form-label") }}
+                {{ form.class_group(class="form-control") }}
+                {% for error in form.class_group.errors %}
+                <div style="color: #e74c3c; font-size: 0.85rem; margin-top: 5px;">
+                    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" value="{{ current_user.email }}" readonly>
+                <small style="color: #7f8c8d; font-size: 0.85rem; display: block; margin-top: 5px;">
+                    <i class="bi bi-info-circle"></i> Email нельзя изменить
+                </small>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="bi bi-heart-pulse"></i> Особенности питания</h3>
+
+            <div class="form-group">
+                {{ form.allergies.label(class="form-label") }}
+                {{ form.allergies(class="form-control", rows=3,
+                    placeholder="Например: орехи, молоко, глютен...") }}
+                {% for error in form.allergies.errors %}
+                <div style="color: #e74c3c; font-size: 0.85rem; margin-top: 5px;">
+                    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if form.preferences %}
+            <div class="form-group">
+                {{ form.preferences.label(class="form-label") }}
+                {{ form.preferences(class="form-control", rows=3,
+                    placeholder="Например: вегетарианские блюда, без сахара...") }}
+                {% for error in form.preferences.errors %}
+                <div style="color: #e74c3c; font-size: 0.85rem; margin-top: 5px;">
+                    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="save-btn">
+            <i class="bi bi-check-circle"></i> Сохранить изменения
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Анимация появления формы
+    const formSections = document.querySelectorAll('.form-section');
+    formSections.forEach((section, index) => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(20px)';
+
+        setTimeout(() => {
+            section.style.transition = 'all 0.5s ease';
+            section.style.opacity = '1';
+            section.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
 {% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать блюдо{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Редактировать блюдо: {{ menu_item.name }}</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control") }}
+                    {% if form.name.errors %}
+                        <div class="text-danger">{{ form.name.errors[0] }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-control", rows="3") }}
+                    {% if form.description.errors %}
+                        <div class="text-danger">{{ form.description.errors[0] }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        {{ form.price.label(class="form-label") }}
+                        <div class="input-group">
+                            {{ form.price(class="form-control") }}
+                            <span class="input-group-text">₽</span>
+                        </div>
+                        {% if form.price.errors %}
+                            <div class="text-danger">{{ form.price.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        {{ form.category.label(class="form-label") }}
+                        {{ form.category(class="form-select") }}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        {{ form.meal_type.label(class="form-label") }}
+                        {{ form.meal_type(class="form-select") }}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check mt-4">
+                            {{ form.available(class="form-check-input") }}
+                            {{ form.available.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    {{ form.allergens.label(class="form-label") }}
+                    {{ form.allergens(class="form-control", rows="2") }}
+                </div>
+                
+                <div class="d-flex gap-2">
+                    {{ form.submit(class="btn btn-primary") }}
+                    <a href="{{ url_for('cook.manage_menu') }}" class="btn btn-secondary">Отмена</a>
+                    <form action="{{ url_for('cook.delete_menu_item', item_id=menu_item.id) }}" 
+                          method="POST" 
+                          class="ms-auto"
+                          onsubmit="return confirm('Вы уверены, что хотите удалить это блюдо?');">
+                        <button type="submit" class="btn btn-danger">Удалить</button>
+                    </form>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

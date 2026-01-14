@@ -240,3 +240,77 @@ def check_low_stock():
         flash('Все необходимые заявки уже созданы', 'info')
 
     return redirect(url_for('cook.supply_requests'))
+
+
+@cook_bp.route('/menu/<int:item_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_menu_item(item_id):
+    if current_user.role != 'cook':
+        flash('Доступ запрещен', 'danger')
+        return redirect(url_for('index'))
+
+    from modules.core.models import MenuItem
+    from .forms import MenuItemForm
+
+    menu_item = MenuItem.query.get_or_404(item_id)
+    form = MenuItemForm(obj=menu_item)
+
+    if form.validate_on_submit():
+        menu_item.name = form.name.data
+        menu_item.description = form.description.data
+        menu_item.price = float(form.price.data)
+        menu_item.category = form.category.data
+        menu_item.meal_type = form.meal_type.data
+        menu_item.allergens = form.allergens.data
+        menu_item.available = form.available.data
+
+        db.session.commit()
+
+        flash(f'Блюдо "{menu_item.name}" обновлено', 'success')
+        return redirect(url_for('cook.manage_menu'))
+
+    return render_template('cook/edit_menu_item.html', form=form, menu_item=menu_item)
+
+
+@cook_bp.route('/menu/<int:item_id>/delete', methods=['POST'])
+@login_required
+def delete_menu_item(item_id):
+    if current_user.role != 'cook':
+        flash('Доступ запрещен', 'danger')
+        return redirect(url_for('index'))
+
+    from modules.core.models import MenuItem
+
+    menu_item = MenuItem.query.get_or_404(item_id)
+    db.session.delete(menu_item)
+    db.session.commit()
+
+    flash(f'Блюдо "{menu_item.name}" удалено', 'success')
+    return redirect(url_for('cook.manage_menu'))
+
+
+@cook_bp.route('/supply/<int:request_id>/cancel', methods=['POST'])
+@login_required
+def cancel_supply_request(request_id):
+    if current_user.role != 'cook':
+        flash('Доступ запрещен', 'danger')
+        return redirect(url_for('index'))
+
+    from modules.core.models import SupplyRequest
+
+    supply_request = SupplyRequest.query.get_or_404(request_id)
+
+    # Проверяем, что заявка принадлежит текущему повару
+    if supply_request.cook_id != current_user.id:
+        flash('Вы можете отменять только свои заявки', 'danger')
+        return redirect(url_for('cook.supply_requests'))
+
+    if supply_request.status != 'pending':
+        flash('Можно отменять только ожидающие заявки', 'warning')
+        return redirect(url_for('cook.supply_requests'))
+
+    db.session.delete(supply_request)
+    db.session.commit()
+
+    flash('Заявка отменена', 'success')
+    return redirect(url_for('cook.supply_requests'))
