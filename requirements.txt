@@ -1,0 +1,33 @@
+ # Flask и основные зависимости
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Login==0.6.3
+Flask-WTF==1.1.1
+WTForms==3.0.1
+
+# Работа с формами
+email-validator==2.0.0
+
+# Безопасность
+Werkzeug==2.3.7
+itsdangerous==2.1.2
+
+# Базы данных
+psycopg2-binary==2.9.7  # Для PostgreSQL
+# или используйте SQLite для разработки (встроена в Python)
+
+# Для разработки
+python-dotenv==1.0.0
+Flask-DebugToolbar==0.13.1
+
+# Утилиты
+pytz==2023.3
+requests==2.31.0  # Для возможных интеграций с API
+
+# Для генерации отчетов (опционально)
+openpyxl==3.1.2  # Для работы с Excel
+reportlab==4.0.4  # Для генерации PDF
+
+# Тестирование
+pytest==7.4.0
+pytest-flask==1.2.0

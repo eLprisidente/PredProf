@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Доступ запрещен{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center; padding: 50px;">
+    <h1 style="font-size: 100px; color: #e74c3c; margin-bottom: 20px;">403</h1>
+    <h2 style="margin-bottom: 20px;">Доступ запрещен</h2>
+    <p style="margin-bottom: 30px; color: #666;">
+        У вас недостаточно прав для доступа к этой странице.
+    </p>
+    <a href="{{ url_for('index') }}" class="btn">Вернуться на главную</a>
+</div>
+{% endblock %}

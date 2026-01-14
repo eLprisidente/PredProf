@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Оставить отзыв{% endblock %}
+
+{% block content %}
+<h1>Отзыв о заказе #{{ order.id }}</h1>
+<p>Блюдо: {{ order.menu_item.name }}</p>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+    
+    <div style="margin-bottom: 20px;">
+        {{ form.rating.label }}
+        {{ form.rating(class="form-control") }}
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        {{ form.comment.label }}
+        {{ form.comment(class="form-control", rows="4", placeholder="Поделитесь вашим мнением...") }}
+    </div>
+    
+    <button type="submit" class="btn">Отправить отзыв</button>
+</form>
+{% endblock %}

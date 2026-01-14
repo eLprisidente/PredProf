@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет ученика{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Личный кабинет ученика</h1>
+    <p>Добро пожаловать, {{ current_user.full_name }} ({{ current_user.class_group }})</p>
+</div>
+
+<div class="dashboard-cards">
+    <div class="dashboard-card">
+        <h3 class="card-title">Сегодняшние заказы</h3>
+        {% if orders %}
+            <ul style="list-style: none; padding: 0;">
+                {% for order in orders %}
+                <li style="padding: 10px; border-bottom: 1px solid #eee;">
+                    <strong>{{ order.meal_time|capitalize }}</strong>:
+                    {{ order.menu_item.name }} - {{ order.menu_item.price }} руб.
+                    <span style="float: right; color: {% if order.status == 'received' %}green{% else %}orange{% endif %};">
+                        {{ order.status|capitalize }}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>У вас нет заказов на сегодня.</p>
+            <a href="{{ url_for('user.show_menu') }}" class="btn">Посмотреть меню</a>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-card">
+        <h3 class="card-title">Быстрые действия</h3>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <a href="{{ url_for('user.show_menu') }}" class="btn">Посмотреть меню</a>
+            <a href="{{ url_for('user.create_order') }}" class="btn btn-success">Сделать заказ</a>
+            <a href="{{ url_for('user.my_orders') }}" class="btn">История заказов</a>
+            <a href="{{ url_for('user.profile') }}" class="btn">Мой профиль</a>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <h3 class="card-title">Меню на сегодня</h3>
+        {% if menu_items %}
+            <ul style="list-style: none; padding: 0;">
+                {% for item in menu_items[:5] %}
+                <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                    <strong>{{ item.name }}</strong><br>
+                    <small>{{ item.description[:50] }}...</small><br>
+                    <span style="color: #27ae60; font-weight: bold;">{{ item.price }} руб.</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <a href="{{ url_for('user.show_menu') }}" style="display: block; margin-top: 10px; text-align: center;">
+                Показать все блюда
+            </a>
+        {% else %}
+            <p>Меню пока не доступно.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

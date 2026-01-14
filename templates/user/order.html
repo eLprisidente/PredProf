@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Оформление заказа{% endblock %}
+
+{% block content %}
+<h1>Оформление заказа</h1>
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <form method="POST" action="{{ url_for('user.create_order') }}">
+        {{ form.hidden_tag() }}
+
+        <div style="margin-bottom: 20px;">
+            {{ form.menu_item_id.label }}
+            {{ form.menu_item_id(class="form-control") }}
+            {% if form.menu_item_id.errors %}
+                <div style="color: red; font-size: 0.9em;">
+                    {% for error in form.menu_item_id.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            {{ form.meal_time.label }}
+            {{ form.meal_time(class="form-control") }}
+            {% if form.meal_time.errors %}
+                <div style="color: red; font-size: 0.9em;">
+                    {% for error in form.meal_time.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            {{ form.quantity.label }}
+            {{ form.quantity(class="form-control", type="number", min="1", max="5") }}
+            {% if form.quantity.errors %}
+                <div style="color: red; font-size: 0.9em;">
+                    {% for error in form.quantity.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            {{ form.payment_type.label }}
+            {{ form.payment_type(class="form-control") }}
+            {% if form.payment_type.errors %}
+                <div style="color: red; font-size: 0.9em;">
+                    {% for error in form.payment_type.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            {{ form.order_date.label }}
+            {{ form.order_date(class="form-control", type="date") }}
+            {% if form.order_date.errors %}
+                <div style="color: red; font-size: 0.9em;">
+                    {% for error in form.order_date.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            {{ form.special_requests.label }}
+            {{ form.special_requests(class="form-control", rows="3", placeholder="Укажите аллергены или особые пожелания") }}
+            {% if form.special_requests.errors %}
+                <div style="color: red; font-size: 0.9em;">
+                    {% for error in form.special_requests.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%; padding: 12px;">Оформить заказ</button>
+    </form>
+</div>
+{% endblock %}

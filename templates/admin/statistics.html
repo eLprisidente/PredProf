@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика{% endblock %}
+
+{% block content %}
+<h1>Статистика столовой</h1>
+
+<div class="dashboard-cards">
+    <div class="dashboard-card">
+        <h3 class="card-title">Всего заказов</h3>
+        <div class="card-value">{{ total_orders }}</div>
+        <p>за все время</p>
+    </div>
+
+    <div class="dashboard-card">
+        <h3 class="card-title">Оплаченных заказов</h3>
+        <div class="card-value">{{ total_paid_orders }}</div>
+        <p>{{ ((total_paid_orders / total_orders * 100) if total_orders > 0 else 0)|round(1) }}% от всех</p>
+    </div>
+
+    <div class="dashboard-card">
+        <h3 class="card-title">Общая выручка</h3>
+        <div class="card-value">{{ "%.2f"|format(total_revenue) }} руб.</div>
+        <p>за все время</p>
+    </div>
+</div>
+
+<div style="margin-top: 40px;">
+    <h2>Статистика за последние 7 дней</h2>
+    {% if daily_stats %}
+    <table>
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Количество заказов</th>
+                <th>Выручка за день</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for day in daily_stats %}
+            <tr>
+                <td>{{ day.order_date.strftime('%d.%m.%Y') }}</td>
+                <td>{{ day.orders_count }}</td>
+                <td>{{ "%.2f"|format(day.daily_revenue) }} руб.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Нет данных за последние 7 дней.</p>
+    {% endif %}
+</div>
+
+<div style="margin-top: 40px;">
+    <h2>Статистика по типам оплаты</h2>
+    {% if payment_type_stats %}
+    <table>
+        <thead>
+            <tr>
+                <th>Тип оплаты</th>
+                <th>Количество заказов</th>
+                <th>Процент</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in payment_type_stats %}
+            <tr>
+                <td>
+                    {% if stat.payment_type == 'single' %}
+                    Разовая оплата
+                    {% elif stat.payment_type == 'subscription' %}
+                    Абонемент
+                    {% else %}
+                    {{ stat.payment_type|capitalize }}
+                    {% endif %}
+                </td>
+                <td>{{ stat.count }}</td>
+                <td>
+                    {{ ((stat.count / total_paid_orders * 100) if total_paid_orders > 0 else 0)|round(1) }}%
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Нет данных по типам оплаты.</p>
+    {% endif %}
+</div>
+
+<div style="margin-top: 40px;">
+    <h2>Популярные блюда</h2>
+    {% if popular_dishes %}
+    <table>
+        <thead>
+            <tr>
+                <th>Блюдо</th>
+                <th>Количество заказов</th>
+                <th>Всего порций</th>
+                <th>Выручка</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dish in popular_dishes %}
+            <tr>
+                <td>{{ dish.name }}</td>
+                <td>{{ dish.orders_count }}</td>
+                <td>{{ dish.total_quantity }}</td>
+                <td>{{ "%.2f"|format(dish.revenue) }} руб.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Нет данных по популярным блюдам.</p>
+    {% endif %}
+</div>
+{% endblock %}

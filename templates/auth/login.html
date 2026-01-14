@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Вход в систему{% endblock %}
+
+{% block content %}
+<div style="max-width: 400px; margin: 0 auto;">
+    <h1 style="text-align: center; margin-bottom: 30px;">Вход в систему</h1>
+    
+    <form method="POST" action="{{ url_for('auth.login') }}">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            {{ form.email.label }}
+            {{ form.email(class="form-control") }}
+            {% if form.email.errors %}
+                <div style="color: red; font-size: 0.9em;">
+                    {% for error in form.email.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.password.label }}
+            {{ form.password(class="form-control") }}
+            {% if form.password.errors %}
+                <div style="color: red; font-size: 0.9em;">
+                    {% for error in form.password.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            {{ form.remember() }}
+            {{ form.remember.label }}
+        </div>
+        
+        <div class="form-group">
+            {{ form.submit(class="btn", style="width: 100%;") }}
+        </div>
+    </form>
+    
+    <p style="text-align: center; margin-top: 20px;">
+        Нет аккаунта? <a href="{{ url_for('auth.register') }}">Зарегистрироваться</a>
+    </p>
+    
+    <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+        <p style="font-size: 0.9em; color: #666; margin-bottom: 10px;">
+            <strong>Тестовые аккаунты:</strong>
+        </p>
+        <ul style="font-size: 0.85em; color: #666; padding-left: 20px;">
+            <li>Админ: admin@school.ru / admin123</li>
+            <li>Повар: cook@school.ru / cook123</li>
+            <li>Ученик: student@school.ru / student123</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
