@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Панель администратора{% endblock %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+    <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+        Панель администратора
+    </h1>
+    <p style="color: #7f8c8d; font-size: 1rem;">Добро пожаловать, {{ current_user.full_name }}!</p>
+</div>
+
+<!-- Ключевые метрики -->
+<div class="dashboard-grid">
+    <div class="dashboard-column">
+        <div class="dashboard-card">
+            <h2><i class="bi bi-people"></i> Пользователи</h2>
+            <div class="stat-large">
+                <div class="stat-value-large">{{ total_users }}</div>
+                <div class="stat-label-large">Всего пользователей</div>
+            </div>
+            <a href="{{ url_for('admin.manage_users') }}" class="btn btn-outline" style="width: 100%; margin-top: 15px;">
+                <i class="bi bi-arrow-right"></i> Управление пользователями
+            </a>
+        </div>
+    </div>
+
+    <div class="dashboard-column">
+        <div class="dashboard-card">
+            <h2><i class="bi bi-cart"></i> Заказы сегодня</h2>
+            <div class="stat-large">
+                <div class="stat-value-large">{{ total_orders_today }}</div>
+                <div class="stat-label-large">Заказов</div>
+            </div>
+            <a href="{{ url_for('admin.view_statistics') }}" class="btn btn-outline" style="width: 100%; margin-top: 15px;">
+                <i class="bi bi-arrow-right"></i> Подробная статистика
+            </a>
+        </div>
+    </div>
+
+    <div class="dashboard-column">
+        <div class="dashboard-card">
+            <h2><i class="bi bi-clock-history"></i> Ожидающие заявки</h2>
+            <div class="stat-large">
+                <div class="stat-value-large">{{ total_pending_requests }}</div>
+                <div class="stat-label-large">Требуют внимания</div>
+            </div>
+            <a href="{{ url_for('admin.admin_supply_requests') }}" class="btn btn-danger" style="width: 100%; margin-top: 15px;">
+                <i class="bi bi-exclamation-triangle"></i> Рассмотреть заявки
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Быстрые действия -->
+<div class="dashboard-card" style="margin-top: 30px;">
+    <h2><i class="bi bi-lightning"></i> Быстрые действия</h2>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <a href="{{ url_for('admin.manage_users') }}" class="quick-action-card">
+                <div class="quick-action-icon" style="background: #3498db;">
+                    <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="quick-action-content">
+                    <h3>Добавить пользователя</h3>
+                    <p>Создать нового пользователя или администратора</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4">
+            <a href="{{ url_for('admin.generate_reports') }}" class="quick-action-card">
+                <div class="quick-action-icon" style="background: #27ae60;">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+                <div class="quick-action-content">
+                    <h3>Создать отчет</h3>
+                    <p>Сформировать финансовый или статистический отчет</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4">
+            <a href="{{ url_for('admin.view_feedback') }}" class="quick-action-card">
+                <div class="quick-action-icon" style="background: #f39c12;">
+                    <i class="bi bi-chat-left-text"></i>
+                </div>
+                <div class="quick-action-content">
+                    <h3>Проверить отзывы</h3>
+                    <p>Посмотреть отзывы пользователей</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Последние 5 заказов -->
+<div class="dashboard-card" style="margin-top: 30px;">
+    <h2><i class="bi bi-clock-history"></i> Последние заказы</h2>
+
+    {% if recent_orders %}
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Время</th>
+                    <th>Пользователь</th>
+                    <th>Блюдо</th>
+                    <th>Сумма</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in recent_orders %}
+                <tr>
+                    <td>{{ order.created_at.strftime('%H:%M') if order.created_at else '' }}</td>
+                    <td>{{ order.user.full_name if order.user else 'Удален' }}</td>
+                    <td>{{ order.menu_item.name if order.menu_item else 'Удалено' }}</td>
+                    <td>{{ order.menu_item.price * order.quantity if order.menu_item else 0 }} ₽</td>
+                    <td>
+                        {% if order.payment_status == 'paid' %}
+                            <span class="badge badge-success">Оплачен</span>
+                        {% else %}
+                            <span class="badge badge-warning">Ожидает</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-receipt"></i>
+        <h3>Нет заказов</h3>
+        <p>Сегодня еще не было заказов</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.stat-large {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.stat-value-large {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1;
+}
+
+.stat-label-large {
+    color: #7f8c8d;
+    font-size: 1rem;
+    margin-top: 10px;
+}
+
+.quick-action-card {
+    display: block;
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    border: 1px solid #eaeaea;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s;
+    height: 100%;
+}
+
+.quick-action-card:hover {
+    border-color: #3498db;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.quick-action-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+.quick-action-content h3 {
+    color: #2c3e50;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+}
+
+.quick-action-content p {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    background: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 600;
+    padding: 15px;
+    text-align: left;
+    border-bottom: 2px solid #eaeaea;
+}
+
+.admin-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.admin-table tr:hover {
+    background: #f8f9fa;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: #bdc3c7;
+    margin-bottom: 15px;
+}
+
+.empty-state h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    font-size: 1.3rem;
+}
+
+.empty-state p {
+    color: #7f8c8d;
+    margin-bottom: 30px;
+    font-size: 1rem;
+}
+</style>
+{% endblock %}

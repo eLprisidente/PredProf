@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Новая заявка на поставку{% endblock %}
+{% block content %}
+<h1>Новая заявка на поставку</h1>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.product_name.label }}
+        {{ form.product_name(class="form-control", placeholder="Картофель, молоко, хлеб...") }}
+        {% if form.product_name.errors %}
+            <div style="color: red;">{{ form.product_name.errors[0] }}</div>
+        {% endif %}
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.quantity.label }}
+        {{ form.quantity(class="form-control") }}
+        {% if form.quantity.errors %}
+            <div style="color: red;">{{ form.quantity.errors[0] }}</div>
+        {% endif %}
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.unit.label }}
+        {{ form.unit(class="form-control") }}
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.urgency.label }}
+        {{ form.urgency(class="form-control") }}
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        {{ form.notes.label }}
+        {{ form.notes(class="form-control", rows="3", placeholder="Дополнительная информация о заявке...") }}
+    </div>
+    
+    {{ form.submit(class="btn btn-primary") }}
+    <a href="{{ url_for('cook.supply_requests') }}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

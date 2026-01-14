@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header" style="margin-bottom: 30px;">
+        <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+            Статистика системы
+        </h1>
+        <p style="color: #7f8c8d; font-size: 1rem;">Аналитика по оплатам, заказам и посещаемости</p>
+    </div>
+
+    <!-- Основная статистика -->
+    <div class="dashboard-grid">
+        <div class="dashboard-column">
+            <div class="dashboard-card">
+                <h2><i class="bi bi-receipt"></i> Заказы</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ total_orders }}</div>
+                        <div class="stat-label">Всего заказов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ total_paid_orders }}</div>
+                        <div class="stat-label">Оплаченных</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-column">
+            <div class="dashboard-card">
+                <h2><i class="bi bi-cash"></i> Финансы</h2>
+                <div class="stat-card" style="grid-column: span 2;">
+                    <div class="stat-value">{{ "%.2f"|format(total_revenue) }} ₽</div>
+                    <div class="stat-label">Общая выручка</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Детальная статистика -->
+    <div class="dashboard-card" style="margin-top: 30px;">
+        <h2><i class="bi bi-graph-up"></i> Статистика за последние 7 дней</h2>
+
+        {% if daily_stats %}
+        <div style="overflow-x: auto;">
+            <table class="admin-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Количество заказов</th>
+                        <th>Выручка (₽)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in daily_stats %}
+                    <tr>
+                        <td>{{ day.order_date.strftime('%d.%m.%Y') }}</td>
+                        <td>{{ day.orders_count }}</td>
+                        <td>{{ "%.2f"|format(day.daily_revenue or 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-graph-up"></i>
+            <h3>Нет данных</h3>
+            <p>За последние 7 дней нет статистики</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Популярные блюда -->
+    {% if popular_dishes %}
+    <div class="dashboard-card" style="margin-top: 30px;">
+        <h2><i class="bi bi-egg-fried"></i> Популярные блюда</h2>
+        <div style="overflow-x: auto;">
+            <table class="admin-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Блюдо</th>
+                        <th>Количество заказов</th>
+                        <th>Всего порций</th>
+                        <th>Выручка (₽)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dish in popular_dishes %}
+                    <tr>
+                        <td>{{ dish.name }}</td>
+                        <td>{{ dish.orders_count }}</td>
+                        <td>{{ dish.total_quantity }}</td>
+                        <td>{{ "%.2f"|format(dish.revenue) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Навигация назад -->
+    <div style="margin-top: 30px;">
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn">
+            <i class="bi bi-arrow-left"></i> Назад в панель управления
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.admin-table th {
+    background: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 600;
+    padding: 15px;
+    text-align: left;
+    border-bottom: 2px solid #eaeaea;
+}
+
+.admin-table td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.admin-table tr:hover {
+    background: #f8f9fa;
+}
+
+.dashboard-card h2 {
+    color: #2c3e50;
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+</style>
+{% endblock %}

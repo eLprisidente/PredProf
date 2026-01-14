@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% block title %}Отзывы пользователей{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header" style="margin-bottom: 30px;">
+        <div>
+            <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+                Отзывы пользователей
+            </h1>
+            <p style="color: #7f8c8d; font-size: 1rem;">Просмотр и управление отзывами</p>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="ajaxAlert" style="display: none; margin-bottom: 20px;"></div>
+
+    <!-- Фильтры -->
+    <div class="dashboard-card" style="margin-bottom: 20px;">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text" id="searchInput" class="form-control" placeholder="Поиск по тексту..." oninput="applyFilters()">
+            </div>
+            <div class="col-md-3">
+                <select id="ratingFilter" class="form-control" onchange="applyFilters()">
+                    <option value="">Все оценки</option>
+                    <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+                    <option value="4">⭐⭐⭐⭐ (4)</option>
+                    <option value="3">⭐⭐⭐ (3)</option>
+                    <option value="2">⭐⭐ (2)</option>
+                    <option value="1">⭐ (1)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="replyFilter" class="form-control" onchange="applyFilters()">
+                    <option value="">Все отзывы</option>
+                    <option value="replied">С ответом</option>
+                    <option value="not_replied">Без ответа</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline w-100" onclick="resetFilters()">
+                    <i class="bi bi-arrow-clockwise"></i> Сбросить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список отзывов -->
+    <div class="dashboard-card">
+        {% if feedback_list %}
+        <div class="feedback-list">
+            {% for feedback in feedback_list %}
+            <div class="feedback-item" id="feedback-{{ feedback.id }}">
+                <div class="feedback-header">
+                    <div class="feedback-user">
+                        <strong>{{ feedback.user.full_name if feedback.user else 'Анонимный пользователь' }}</strong>
+                        <span class="feedback-date">{{ feedback.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                    </div>
+                    <div class="feedback-rating">
+                        {% for i in range(1, 6) %}
+                            {% if i <= feedback.rating %}
+                                <i class="bi bi-star-fill" style="color: #f39c12;"></i>
+                            {% else %}
+                                <i class="bi bi-star" style="color: #ddd;"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="feedback-content">
+                    <p>{{ feedback.comment }}</p>
+                    
+                    {% if feedback.menu_item %}
+                    <div class="feedback-dish">
+                        <i class="bi bi-egg-fried"></i> Блюдо: {{ feedback.menu_item.name }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if feedback.admin_reply %}
+                <div class="feedback-reply">
+                    <div class="reply-header">
+                        <strong><i class="bi bi-person-badge"></i> Ответ администратора</strong>
+                        <span class="reply-date">{{ feedback.replied_at.strftime('%d.%m.%Y %H:%M') if feedback.replied_at else '' }}</span>
+                    </div>
+                    <div class="reply-content">
+                        <p>{{ feedback.admin_reply }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="no-reply" style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-top: 10px;">
+                    <span style="color: #7f8c8d; font-size: 0.9rem;">
+                        <i class="bi bi-exclamation-circle"></i> Нет ответа администратора
+                    </span>
+                </div>
+                {% endif %}
+                
+                <div class="feedback-actions">
+                    {% if not feedback.admin_reply %}
+                    <button class="btn btn-sm btn-outline-primary" onclick="showReplyModal({{ feedback.id }})">
+                        <i class="bi bi-reply"></i> Ответить
+                    </button>
+                    {% else %}
+                    <button class="btn btn-sm btn-outline-secondary" onclick="showReplyModal({{ feedback.id }})">
+                        <i class="bi bi-pencil"></i> Изменить ответ
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFeedback({{ feedback.id }})">
+                        <i class="bi bi-trash"></i> Удалить
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="text-align: center; padding: 40px 20px;">
+            <i class="bi bi-chat-left-text" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 15px;"></i>
+            <h3 style="color: #2c3e50; margin-bottom: 10px; font-size: 1.3rem;">Нет отзывов</h3>
+            <p style="color: #7f8c8d; margin-bottom: 30px; font-size: 1rem;">Пока нет отзывов от пользователей</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальное окно ответа на отзыв -->
+<div class="modal-overlay" id="replyModal" style="display: none;">
+    <div class="modal" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Ответ на отзыв</h3>
+            <button type="button" class="close-btn" onclick="closeReplyModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="feedbackPreview" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <!-- Предпросмотр отзыва будет здесь -->
+            </div>
+            <div class="form-group">
+                <label for="replyText">Ответ администратора</label>
+                <textarea class="form-control" id="replyText" rows="4" placeholder="Введите ваш ответ..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeReplyModal()">Отмена</button>
+            <button type="button" class="btn btn-primary" onclick="sendReply()">Отправить ответ</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.feedback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.feedback-item {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid #eaeaea;
+}
+
+.feedback-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.feedback-user {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.feedback-user strong {
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.feedback-date {
+    color: #7f8c8d;
+    font-size: 0.85rem;
+}
+
+.feedback-rating {
+    font-size: 1.2rem;
+}
+
+.feedback-content {
+    margin-bottom: 15px;
+}
+
+.feedback-content p {
+    color: #2c3e50;
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.feedback-dish {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.feedback-reply {
+    background: #e8f4fd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+    border-left: 4px solid #3498db;
+}
+
+.reply-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+.reply-header strong {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.reply-date {
+    color: #7f8c8d;
+    font-size: 0.85rem;
+}
+
+.reply-content p {
+    color: #2c3e50;
+    line-height: 1.5;
+}
+
+.feedback-actions {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #7f8c8d;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #eee;
+    text-align: right;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// AJAX уведомления
+function showAlert(message, type = 'success') {
+    const alertDiv = document.getElementById('ajaxAlert');
+    alertDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>${message}</div>
+            <button type="button" class="close-btn" onclick="this.parentElement.parentElement.style.display='none'" style="background: none; border: none; font-size: 1.2rem; color: inherit;">&times;</button>
+        </div>
+    `;
+    alertDiv.style.display = 'block';
+    alertDiv.className = `alert alert-${type}`;
+    
+    setTimeout(() => {
+        alertDiv.style.display = 'none';
+    }, 5000);
+}
+
+// Фильтрация отзывов
+function applyFilters() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const ratingFilter = document.getElementById('ratingFilter').value;
+    const replyFilter = document.getElementById('replyFilter').value;
+    const feedbackItems = document.querySelectorAll('.feedback-item');
+    
+    let visibleCount = 0;
+    
+    feedbackItems.forEach(item => {
+        const text = item.querySelector('.feedback-content p').textContent.toLowerCase();
+        const rating = item.querySelectorAll('.bi-star-fill').length;
+        const hasReply = item.querySelector('.feedback-reply') !== null;
+        
+        const matchesSearch = text.includes(searchTerm);
+        const matchesRating = !ratingFilter || rating == ratingFilter;
+        let matchesReply = true;
+        
+        if (replyFilter === 'replied') {
+            matchesReply = hasReply;
+        } else if (replyFilter === 'not_replied') {
+            matchesReply = !hasReply;
+        }
+        
+        if (matchesSearch && matchesRating && matchesReply) {
+            item.style.display = '';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Если нет результатов
+    if (visibleCount === 0 && (searchTerm || ratingFilter || replyFilter)) {
+        const feedbackList = document.querySelector('.feedback-list');
+        if (feedbackList && !feedbackList.querySelector('.no-results')) {
+            const noResultsDiv = document.createElement('div');
+            noResultsDiv.className = 'no-results';
+            noResultsDiv.style.textAlign = 'center';
+            noResultsDiv.style.padding = '40px 20px';
+            noResultsDiv.style.color = '#7f8c8d';
+            noResultsDiv.innerHTML = `
+                <i class="bi bi-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                <h3 style="color: #2c3e50; margin-bottom: 10px;">Нет результатов</h3>
+                <p>Попробуйте изменить параметры поиска</p>
+            `;
+            feedbackList.appendChild(noResultsDiv);
+        }
+    } else {
+        const noResultsDiv = document.querySelector('.no-results');
+        if (noResultsDiv) {
+            noResultsDiv.remove();
+        }
+    }
+}
+
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('ratingFilter').value = '';
+    document.getElementById('replyFilter').value = '';
+    applyFilters();
+}
+
+// Ответ на отзыв
+let currentFeedbackId = null;
+
+function showReplyModal(feedbackId) {
+    currentFeedbackId = feedbackId;
+    
+    const feedbackItem = document.getElementById(`feedback-${feedbackId}`);
+    const userName = feedbackItem.querySelector('.feedback-user strong').textContent;
+    const feedbackDate = feedbackItem.querySelector('.feedback-date').textContent;
+    const feedbackText = feedbackItem.querySelector('.feedback-content p').textContent;
+    const existingReply = feedbackItem.querySelector('.reply-content p');
+    
+    let stars = '';
+    const starCount = feedbackItem.querySelectorAll('.bi-star-fill').length;
+    for (let i = 0; i < 5; i++) {
+        if (i < starCount) {
+            stars += '<i class="bi bi-star-fill" style="color: #f39c12;"></i>';
+        } else {
+            stars += '<i class="bi bi-star" style="color: #ddd;"></i>';
+        }
+    }
+    
+    document.getElementById('feedbackPreview').innerHTML = `
+        <div style="margin-bottom: 10px;">
+            <strong>${userName}</strong>
+            <span style="color: #7f8c8d; font-size: 0.9rem; margin-left: 10px;">${feedbackDate}</span>
+        </div>
+        <div style="margin-bottom: 10px;">${stars}</div>
+        <div style="color: #2c3e50; font-size: 0.9rem;">${feedbackText}</div>
+    `;
+    
+    if (existingReply) {
+        document.getElementById('replyText').value = existingReply.textContent;
+    } else {
+        document.getElementById('replyText').value = '';
+    }
+    
+    document.getElementById('replyModal').style.display = 'flex';
+}
+
+function closeReplyModal() {
+    document.getElementById('replyModal').style.display = 'none';
+    document.getElementById('replyText').value = '';
+}
+
+function sendReply() {
+    const replyText = document.getElementById('replyText').value.trim();
+    
+    if (!replyText) {
+        showAlert('Введите текст ответа', 'warning');
+        return;
+    }
+    
+    fetch(`/admin/api/feedback/${currentFeedbackId}/reply`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            reply: replyText
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showAlert(result.message, 'success');
+            closeReplyModal();
+            // Обновляем страницу через 1 секунду
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(result.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Ошибка сети: ' + error.message, 'danger');
+    });
+}
+
+// Удаление отзыва
+function deleteFeedback(feedbackId) {
+    if (confirm('Вы уверены, что хотите удалить этот отзыв?')) {
+        fetch(`/admin/api/feedback/${feedbackId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert(result.message, 'success');
+                // Удаляем элемент из DOM
+                const feedbackItem = document.getElementById(`feedback-${feedbackId}`);
+                if (feedbackItem) {
+                    feedbackItem.remove();
+                }
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Ошибка сети: ' + error.message, 'danger');
+        });
+    }
+}
+
+// Инициализация фильтров при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    applyFilters();
+});
+</script>
+{% endblock %}

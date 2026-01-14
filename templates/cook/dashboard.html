@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block title %}Панель повара{% endblock %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 30px;">
+    <h1 style="color: #2c3e50; font-size: 1.8rem; font-weight: 700; margin-bottom: 5px;">
+        Панель повара - {{ current_user.full_name }}
+    </h1>
+    <p style="color: #7f8c8d; font-size: 1rem;">Управление кухней и заказами</p>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Левая колонка: Статистика сегодня -->
+    <div class="dashboard-column">
+        <div class="dashboard-card">
+            <h2 style="font-size: 1.2rem;"><i class="bi bi-graph-up"></i> Статистика сегодня</h2>
+            <div class="stats-grid-compact">
+                <div class="stat-item-compact">
+                    <div class="stat-icon-compact" style="background: #3498db;">
+                        <i class="bi bi-cart"></i>
+                    </div>
+                    <div class="stat-content-compact">
+                        <div class="stat-value-compact">{{ today_orders|length }}</div>
+                        <div class="stat-label-compact">Всего заказов</div>
+                    </div>
+                </div>
+
+                <div class="stat-item-compact">
+                    <div class="stat-icon-compact" style="background: #27ae60;">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="stat-content-compact">
+                        <div class="stat-value-compact">{{ today_orders|selectattr('status', 'equalto', 'received')|list|length }}</div>
+                        <div class="stat-label-compact">Выполнено</div>
+                    </div>
+                </div>
+
+                <div class="stat-item-compact">
+                    <div class="stat-icon-compact" style="background: #f39c12;">
+                        <i class="bi bi-clock"></i>
+                    </div>
+                    <div class="stat-content-compact">
+                        <div class="stat-value-compact">{{ today_orders|rejectattr('status', 'equalto', 'received')|list|length }}</div>
+                        <div class="stat-label-compact">В работе</div>
+                    </div>
+                </div>
+
+                <div class="stat-item-compact">
+                    <div class="stat-icon-compact" style="background: #e74c3c;">
+                        <i class="bi bi-egg-fried"></i>
+                    </div>
+                    <div class="stat-content-compact">
+                        {% set breakfast_count = today_orders|selectattr('meal_time', 'equalto', 'breakfast')|list|length %}
+                        <div class="stat-value-compact">{{ breakfast_count }}</div>
+                        <div class="stat-label-compact">Завтраков</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <h2 style="font-size: 1.2rem;"><i class="bi bi-bell"></i> Предупреждения</h2>
+            {% if low_inventory %}
+                <div class="warning-list-compact">
+                    {% for item in low_inventory[:3] %}
+                    <div class="warning-item-compact">
+                        <div class="warning-icon-compact">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <div class="warning-content-compact">
+                            <div class="warning-title-compact">Мало ингредиентов</div>
+                            <div class="warning-text-compact">{{ item.product_name }}: {{ item.current_quantity }} {{ item.unit }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{{ url_for('cook.view_inventory') }}" class="btn btn-warning btn-sm" style="width: 100%; margin-top: 10px; padding: 8px;">
+                    <i class="bi bi-box"></i> Перейти к инвентарю
+                </a>
+            {% else %}
+                <div class="empty-state-small">
+                    <i class="bi bi-check-circle"></i>
+                    <h3 style="font-size: 1.1rem;">Нет предупреждений</h3>
+                    <p style="font-size: 0.9rem;">Все ингредиенты в норме</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Центральная колонка: Быстрые действия -->
+    <div class="dashboard-column">
+        <div class="dashboard-card">
+            <h2 style="font-size: 1.2rem;"><i class="bi bi-lightning"></i> Быстрые действия</h2>
+            <div class="action-buttons-grid-compact">
+                <!-- Исправленные роуты -->
+                <a href="{{ url_for('cook.manage_orders') }}" class="action-button-compact" style="background: #3498db;">
+                    <i class="bi bi-receipt"></i>
+                    Заказы на сегодня
+                </a>
+
+                <a href="{{ url_for('cook.manage_menu') }}" class="action-button-compact" style="background: #27ae60;">
+                    <i class="bi bi-menu-button-wide"></i>
+                    Управление меню
+                </a>
+
+                <a href="{{ url_for('cook.view_inventory') }}" class="action-button-compact" style="background: #f39c12;">
+                    <i class="bi bi-box"></i>
+                    Инвентарь
+                </a>
+
+                <a href="{{ url_for('cook.new_supply_request') }}" class="action-button-compact" style="background: #e74c3c;">
+                    <i class="bi bi-cart-plus"></i>
+                    Заявка на закупку
+                </a>
+
+                <a href="{{ url_for('cook.view_inventory') }}" class="action-button-compact" style="background: #9b59b6;">
+                    <i class="bi bi-pencil-square"></i>
+                    Обновить инвентарь
+                </a>
+
+                <a href="{{ url_for('cook.new_supply_request') }}" class="action-button-compact" style="background: #1abc9c;">
+                    <i class="bi bi-plus-circle"></i>
+                    Новая заявка
+                </a>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <h2 style="font-size: 1.2rem;"><i class="bi bi-clock-history"></i> Последние заказы</h2>
+            {% if today_orders %}
+                <div class="orders-scroll-compact">
+                    {% for order in today_orders[:5] %}
+                    <div class="order-item-small-compact">
+                        <div class="order-header-small-compact">
+                            <span class="order-time-small">#{{ order.id }}</span>
+                            <span class="order-status-small {% if order.status == 'received' %}status-completed-small{% else %}status-pending-small{% endif %}">
+                                {{ 'Готов' if order.status == 'received' else 'Готовится' }}
+                            </span>
+                        </div>
+                        <div class="order-details-small-compact">
+                            <div>{{ order.menu_item.name }}</div>
+                            <div>Класс: {{ order.user.class_group if order.user.class_group else 'Не указан' }}</div>
+                        </div>
+                        <div class="order-footer-small-compact">
+                            <span>{{ order.meal_time == 'breakfast' and 'Завтрак' or 'Обед' }}</span>
+                            <span>{{ order.created_at.strftime('%H:%M') if order.created_at else '' }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{{ url_for('cook.manage_orders') }}" class="btn btn-outline btn-sm" style="width: 100%; margin-top: 10px; padding: 8px;">
+                    Все заказы
+                </a>
+            {% else %}
+                <div class="empty-state-small">
+                    <i class="bi bi-receipt"></i>
+                    <h3 style="font-size: 1.1rem;">Нет заказов</h3>
+                    <p style="font-size: 0.9rem;">На сегодня заказов нет</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Правая колонка: Инвентарь и информация -->
+    <div class="dashboard-column">
+        <div class="dashboard-card">
+            <h2 style="font-size: 1.2rem;"><i class="bi bi-box"></i> Критический инвентарь</h2>
+            {% if low_inventory %}
+                <div class="inventory-list-compact">
+                    {% for item in low_inventory[:3] %}
+                    <div class="inventory-item-compact critical">
+                        <div class="inventory-name-compact">{{ item.product_name }}</div>
+                        <div class="inventory-quantity-compact">
+                            <span class="quantity-value-compact">{{ item.current_quantity }} {{ item.unit }}</span>
+                            <span class="quantity-min-compact">мин: {{ item.min_quantity }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{{ url_for('cook.new_supply_request') }}" class="btn btn-danger btn-sm" style="width: 100%; margin-top: 10px; padding: 8px;">
+                    <i class="bi bi-exclamation-triangle"></i> Создать заявку
+                </a>
+            {% else %}
+                <div class="empty-state-small">
+                    <i class="bi bi-check-circle"></i>
+                    <h3 style="font-size: 1.1rem;">Все в норме</h3>
+                    <p style="font-size: 0.9rem;">Нет критически низких позиций</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="dashboard-card">
+            <h2 style="font-size: 1.2rem;"><i class="bi bi-info-circle"></i> Информация о кухне</h2>
+            <div class="kitchen-info-compact">
+                <div class="info-item-compact">
+                    <i class="bi bi-clock"></i>
+                    <div>
+                        <div class="info-label-compact">Время работы</div>
+                        <div class="info-value-compact">6:00 - 16:00</div>
+                    </div>
+                </div>
+
+                <div class="info-item-compact">
+                    <i class="bi bi-people"></i>
+                    <div>
+                        <div class="info-label-compact">Повара на смене</div>
+                        <div class="info-value-compact">3</div>
+                    </div>
+                </div>
+
+                <div class="info-item-compact">
+                    <i class="bi bi-thermometer-high"></i>
+                    <div>
+                        <div class="info-label-compact">Температура в цеху</div>
+                        <div class="info-value-compact">24°C</div>
+                    </div>
+                </div>
+
+                <div class="info-item-compact">
+                    <i class="bi bi-calendar-check"></i>
+                    <div>
+                        <div class="info-label-compact">Следующая проверка</div>
+                        <div class="info-value-compact">Завтра</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.stats-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.stat-item-compact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #3498db;
+}
+
+.stat-icon-compact {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.stat-content-compact {
+    flex: 1;
+}
+
+.stat-value-compact {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1;
+}
+
+.stat-label-compact {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin-top: 5px;
+}
+
+.warning-list-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.warning-item-compact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: #fff3cd;
+    border-radius: 6px;
+    border-left: 3px solid #f39c12;
+}
+
+.warning-icon-compact {
+    color: #f39c12;
+    font-size: 1rem;
+}
+
+.warning-content-compact {
+    flex: 1;
+}
+
+.warning-title-compact {
+    font-weight: 600;
+    color: #856404;
+    font-size: 0.9rem;
+}
+
+.warning-text-compact {
+    color: #856404;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
+.action-buttons-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.action-button-compact {
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 15px 8px;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.action-button-compact:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.orders-scroll-compact {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.order-item-small-compact {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-left: 3px solid #3498db;
+}
+
+.order-header-small-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.order-time-small {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.order-status-small {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.status-completed-small {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-pending-small {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.order-details-small-compact {
+    font-size: 0.8rem;
+    color: #2c3e50;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+.order-footer-small-compact {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #7f8c8d;
+}
+
+.inventory-list-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inventory-item-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #27ae60;
+}
+
+.inventory-item-compact.critical {
+    border-left-color: #e74c3c;
+    background: #fadbd8;
+}
+
+.inventory-name-compact {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.inventory-quantity-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.quantity-value-compact {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.quantity-min-compact {
+    font-size: 0.7rem;
+    color: #7f8c8d;
+}
+
+.kitchen-info-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-item-compact {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.info-item-compact i {
+    color: #3498db;
+    font-size: 1rem;
+}
+
+.info-label-compact {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    margin-bottom: 2px;
+}
+
+.info-value-compact {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.empty-state-small {
+    text-align: center;
+    padding: 20px 10px;
+}
+
+.empty-state-small i {
+    color: #bdc3c7;
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+}
+
+.empty-state-small h3 {
+    color: #2c3e50;
+    font-size: 1rem;
+    margin-bottom: 5px;
+}
+
+.empty-state-small p {
+    color: #7f8c8d;
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Школьная столовая - {% block title %}Главная{% endblock %}</title>
+
+    <!-- Основные стили -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="{{ url_for('index') }}" class="logo">
+                    <i class="bi bi-egg-fried"></i> Школьная Столовая
+                </a>
+
+                <div class="nav-links">
+                    {% if current_user.is_authenticated %}
+                        <span>{{ current_user.full_name }}</span>
+
+                        {% if current_user.role == 'student' %}
+                            <a href="{{ url_for('user.dashboard') }}">
+                                <i class="bi bi-house"></i> Главная
+                            </a>
+                            <a href="{{ url_for('user.show_menu') }}">
+                                <i class="bi bi-menu-button-wide"></i> Меню
+                            </a>
+                            <a href="{{ url_for('user.my_orders') }}">
+                                <i class="bi bi-receipt"></i> Заказы
+                            </a>
+                            <a href="{{ url_for('user.profile') }}">
+                                <i class="bi bi-person-circle"></i> Профиль
+                            </a>
+
+                            <!-- Кнопка корзины -->
+                            <a href="{{ url_for('user.view_cart') }}" class="nav-cart">
+                                <i class="bi bi-cart3"></i> Корзина
+                                {% if cart_count and cart_count > 0 %}
+                                <span class="badge">{{ cart_count }}</span>
+                                {% endif %}
+                            </a>
+                        {% endif %}
+
+                        <a href="{{ url_for('auth.logout') }}">
+                            <i class="bi bi-box-arrow-right"></i> Выйти
+                        </a>
+                    {% elif current_user.role == 'cook' %}
+                        <a href="{{ url_for('cook.cook_dashboard') }}">
+                            <i class="bi bi-house"></i> Главная
+                        </a>
+                        <a href="{{ url_for('cook.manage_orders') }}">
+                            <i class="bi bi-receipt"></i> Заказы
+                        </a>
+                        <a href="{{ url_for('cook.manage_menu') }}">
+                            <i class="bi bi-menu-button-wide"></i> Меню
+                        </a>
+                        <a href="{{ url_for('cook.view_inventory') }}">
+                            <i class="bi bi-box"></i> Инвентарь
+                        </a>
+                        <a href="{{ url_for('cook.profile') }}">
+                            <i class="bi bi-person-circle"></i> Профиль
+                        </a>
+
+                    {% elif current_user.role == 'admin' %}
+                        <a href="{{ url_for('admin.admin_dashboard') }}">
+                            <i class="bi bi-house"></i> Главная
+                        </a>
+                        <a href="{{ url_for('admin.manage_users') }}">
+                            <i class="bi bi-people"></i> Пользователи
+                        </a>
+                        <a href="{{ url_for('admin.admin_supply_requests') }}">
+                            <i class="bi bi-cart-plus"></i> Заявки
+                            {% if pending_requests_count and pending_requests_count > 0 %}
+                                <span class="badge">{{ pending_requests_count }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('admin.view_statistics') }}">
+                            <i class="bi bi-graph-up"></i> Статистика
+                        </a>
+                        <a href="{{ url_for('admin.generate_reports') }}">
+                            <i class="bi bi-file-earmark-text"></i> Отчеты
+                        </a>
+                        <a href="{{ url_for('admin.view_feedback') }}">
+                            <i class="bi bi-chat-left-text"></i> Отзывы
+                        </a>
+
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}">
+                            <i class="bi bi-box-arrow-in-right"></i> Вход
+                        </a>
+                        <a href="{{ url_for('auth.register') }}">
+                            <i class="bi bi-person-plus"></i> Регистрация
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>Система управления школьной столовой © 2024</p>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

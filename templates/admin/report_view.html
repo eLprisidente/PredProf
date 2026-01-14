@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Отчет{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 style="text-align: center;">{{ report.title }}</h1>
+    
+    <div style="text-align: center; color: #666; margin-bottom: 30px;">
+        <p>Период: {{ report.period.start_date }} - {{ report.period.end_date }} ({{ report.period.days }} дней)</p>
+        <p>Сгенерирован: {{ report.generated_at }} пользователем {{ report.generated_by }}</p>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px;">
+        <div style="background: #e8f4fc; padding: 20px; border-radius: 8px;">
+            <h3>Заказы</h3>
+            <p><strong>Всего:</strong> {{ report.orders.total }}</p>
+            <p><strong>Оплачено:</strong> {{ report.orders.paid }}</p>
+            <p><strong>Получено:</strong> {{ report.orders.received }}</p>
+            <p><strong>Выручка:</strong> {{ "%.2f"|format(report.orders.revenue) }} руб.</p>
+        </div>
+        
+        <div style="background: #f0f8f0; padding: 20px; border-radius: 8px;">
+            <h3>Пользователи</h3>
+            <p><strong>Всего:</strong> {{ report.users.total }}</p>
+            <p><strong>Активные:</strong> {{ report.users.active }}</p>
+            <p><strong>Процент активных:</strong> 
+                {{ ((report.users.active / report.users.total * 100) if report.users.total > 0 else 0)|round(1) }}%
+            </p>
+        </div>
+        
+        <div style="background: #fff8e1; padding: 20px; border-radius: 8px;">
+            <h3>Заявки на поставку</h3>
+            <p><strong>Всего:</strong> {{ report.supply_requests.total }}</p>
+            <p><strong>Утверждено:</strong> {{ report.supply_requests.approved }}</p>
+            <p><strong>Ожидают:</strong> {{ report.supply_requests.pending }}</p>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px;">
+        <button onclick="window.print()" class="btn">Распечатать отчет</button>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn">Назад к панели</a>
+    </div>
+</div>
+
+<style>
+@media print {
+    .navbar, .btn, footer {
+        display: none;
+    }
+}
+</style>
+{% endblock %}

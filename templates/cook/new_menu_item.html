@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Новое блюдо{% endblock %}
+{% block content %}
+<h1>Добавить новое блюдо</h1>
+<form method="POST">
+    {{ form.hidden_tag() }}
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.name.label }}
+        {{ form.name(class="form-control", placeholder="Название блюда") }}
+        {% if form.name.errors %}
+            <div style="color: red;">{{ form.name.errors[0] }}</div>
+        {% endif %}
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.description.label }}
+        {{ form.description(class="form-control", rows="3", placeholder="Описание блюда...") }}
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.price.label }}
+        {{ form.price(class="form-control") }}
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.category.label }}
+        {{ form.category(class="form-control") }}
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.meal_type.label }}
+        {{ form.meal_type(class="form-control") }}
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        {{ form.allergens.label }}
+        {{ form.allergens(class="form-control", rows="2", placeholder="Глютен, лактоза, орехи...") }}
+    </div>
+    
+    <div style="margin-bottom: 20px;">
+        {{ form.available.label }}
+        {{ form.available() }}
+    </div>
+    
+    {{ form.submit(class="btn btn-primary") }}
+    <a href="{{ url_for('cook.manage_menu') }}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

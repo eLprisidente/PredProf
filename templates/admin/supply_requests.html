@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+
+{% block title %}Заявки на закупки{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header" style="margin-bottom: 30px;">
+        <div>
+            <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+                Заявки на закупки
+            </h1>
+            <p style="color: #7f8c8d; font-size: 1rem;">Управление заявками от поваров</p>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="ajaxAlert" style="display: none; margin-bottom: 20px;"></div>
+
+    <!-- Фильтры статусов -->
+    <div class="filter-tabs" style="margin-bottom: 20px;">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary active" onclick="filterRequests('all')">Все</button>
+            <button type="button" class="btn btn-outline-warning" onclick="filterRequests('pending')">Ожидающие</button>
+            <button type="button" class="btn btn-outline-success" onclick="filterRequests('approved')">Утвержденные</button>
+            <button type="button" class="btn btn-outline-danger" onclick="filterRequests('rejected')">Отклоненные</button>
+        </div>
+    </div>
+
+    <!-- Список заявок -->
+    <div class="dashboard-card">
+        {% if requests %}
+        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+            <table class="admin-table">
+                <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                    <tr>
+                        <th>ID</th>
+                        <th>Продукт</th>
+                        <th>Количество</th>
+                        <th>Категория</th>
+                        <th>Поставщик</th>
+                        <th>Повар</th>
+                        <th>Срочность</th>
+                        <th>Статус</th>
+                        <th>Дата создания</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr class="request-row request-{{ req.status }}" id="request-{{ req.id }}">
+                        <td>#{{ req.id }}</td>
+                        <td>
+                            <strong>{{ req.product_name }}</strong>
+                        </td>
+                        <td>{{ req.quantity }} {{ req.unit }}</td>
+                        <td>{{ req.category }}</td>
+                        <td>{{ req.supplier or '-' }}</td>
+                        <td>{{ req.cook.full_name if req.cook else 'Неизвестно' }}</td>
+                        <td>
+                            {% if req.urgency == 'high' %}
+                                <span class="badge badge-danger">Высокая</span>
+                            {% elif req.urgency == 'medium' %}
+                                <span class="badge badge-warning">Средняя</span>
+                            {% else %}
+                                <span class="badge badge-info">Низкая</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.status == 'pending' %}
+                                <span class="badge badge-warning">Ожидает</span>
+                            {% elif req.status == 'approved' %}
+                                <span class="badge badge-success">Утверждена</span>
+                            {% elif req.status == 'rejected' %}
+                                <span class="badge badge-danger">Отклонена</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ req.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                        <td>
+                            <div class="btn-group" style="display: flex; gap: 5px;">
+                                {% if req.status == 'pending' %}
+                                    <button class="btn btn-sm btn-success" onclick="approveRequest({{ req.id }})" title="Утвердить">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="rejectRequest({{ req.id }})" title="Отклонить">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-info" onclick="showRequestDetails({{ req.id }})" title="Подробнее">
+                                    <i class="bi bi-info-circle"></i>
+                                </button>
+                                {% if req.status != 'approved' %}
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRequest({{ req.id }})" title="Удалить">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state" style="text-align: center; padding: 40px 20px;">
+            <i class="bi bi-cart-plus" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 15px;"></i>
+            <h3 style="color: #2c3e50; margin-bottom: 10px; font-size: 1.3rem;">Нет заявок</h3>
+            <p style="color: #7f8c8d; margin-bottom: 30px; font-size: 1rem;">На данный момент нет заявок на закупку</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальное окно деталей заявки -->
+<div class="modal-overlay" id="requestDetailsModal" style="display: none;">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>Детали заявки #<span id="requestId"></span></h3>
+            <button type="button" class="close-btn" onclick="closeRequestDetails()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="requestDetails" style="margin-bottom: 20px;">
+                <!-- Детали будут загружены через AJAX -->
+            </div>
+            <div class="form-group">
+                <label for="requestNotes">Комментарий к решению</label>
+                <textarea class="form-control" id="requestNotes" rows="3" placeholder="Обоснование решения..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeRequestDetails()">Закрыть</button>
+            <div id="requestActions" style="display: flex; gap: 10px;">
+                <!-- Кнопки действий будут добавлены динамически -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.filter-tabs .btn-group {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.filter-tabs .btn {
+    border-radius: 6px !important;
+    padding: 8px 15px;
+}
+
+.filter-tabs .btn.active {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.request-row td {
+    vertical-align: middle;
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-danger {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.btn-group {
+    display: flex;
+    gap: 5px;
+    flex-wrap: nowrap;
+}
+
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    min-width: 36px;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #7f8c8d;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #eee;
+    text-align: right;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    background: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 600;
+    padding: 15px;
+    text-align: left;
+    border-bottom: 2px solid #eaeaea;
+}
+
+.admin-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.admin-table tr:hover {
+    background: #f8f9fa;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// AJAX уведомления
+function showAlert(message, type = 'success') {
+    const alertDiv = document.getElementById('ajaxAlert');
+    alertDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div>${message}</div>
+            <button type="button" class="close-btn" onclick="this.parentElement.parentElement.style.display='none'" style="background: none; border: none; font-size: 1.2rem; color: inherit;">&times;</button>
+        </div>
+    `;
+    alertDiv.style.display = 'block';
+    alertDiv.className = `alert alert-${type}`;
+
+    setTimeout(() => {
+        alertDiv.style.display = 'none';
+    }, 5000);
+}
+
+// Фильтрация заявок
+function filterRequests(status) {
+    const rows = document.querySelectorAll('.request-row');
+    rows.forEach(row => {
+        if (status === 'all' || row.classList.contains(`request-${status}`)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // Обновляем активную кнопку
+    document.querySelectorAll('.filter-tabs .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+// Показать детали заявки
+let currentRequestId = null;
+
+function showRequestDetails(requestId) {
+    currentRequestId = requestId;
+
+    fetch(`/admin/api/supply-request/${requestId}/details`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const req = data.request;
+            document.getElementById('requestId').textContent = requestId;
+
+            let statusBadge = '';
+            if (req.status === 'pending') {
+                statusBadge = '<span class="badge badge-warning">Ожидает</span>';
+            } else if (req.status === 'approved') {
+                statusBadge = '<span class="badge badge-success">Утверждена</span>';
+            } else {
+                statusBadge = '<span class="badge badge-danger">Отклонена</span>';
+            }
+
+            let urgencyBadge = '';
+            if (req.urgency === 'high') {
+                urgencyBadge = '<span class="badge badge-danger">Высокая</span>';
+            } else if (req.urgency === 'medium') {
+                urgencyBadge = '<span class="badge badge-warning">Средняя</span>';
+            } else {
+                urgencyBadge = '<span class="badge badge-info">Низкая</span>';
+            }
+
+            document.getElementById('requestDetails').innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div>
+                        <strong>Продукт:</strong><br>
+                        ${req.product_name}
+                    </div>
+                    <div>
+                        <strong>Количество:</strong><br>
+                        ${req.quantity} ${req.unit}
+                    </div>
+                    <div>
+                        <strong>Категория:</strong><br>
+                        ${req.category}
+                    </div>
+                    <div>
+                        <strong>Поставщик:</strong><br>
+                        ${req.supplier || 'Не указан'}
+                    </div>
+                    <div>
+                        <strong>Срочность:</strong><br>
+                        ${urgencyBadge}
+                    </div>
+                    <div>
+                        <strong>Статус:</strong><br>
+                        ${statusBadge}
+                    </div>
+                    <div>
+                        <strong>Повар:</strong><br>
+                        ${req.cook_name}
+                    </div>
+                    <div>
+                        <strong>Дата создания:</strong><br>
+                        ${req.created_at}
+                    </div>
+                </div>
+                ${req.reason ? `<div style="margin-top: 15px;"><strong>Причина:</strong><br>${req.reason}</div>` : ''}
+                ${req.notes ? `<div style="margin-top: 15px;"><strong>Примечания:</strong><br>${req.notes.replace(/\n/g, '<br>')}</div>` : ''}
+            `;
+
+            let actionsHtml = '';
+            if (req.status === 'pending') {
+                actionsHtml = `
+                    <button class="btn btn-success" onclick="processRequest('approved')">
+                        <i class="bi bi-check"></i> Утвердить
+                    </button>
+                    <button class="btn btn-danger" onclick="processRequest('rejected')">
+                        <i class="bi bi-x"></i> Отклонить
+                    </button>
+                `;
+            }
+            document.getElementById('requestActions').innerHTML = actionsHtml;
+
+            document.getElementById('requestDetailsModal').style.display = 'flex';
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Ошибка загрузки данных: ' + error.message, 'danger');
+    });
+}
+
+function closeRequestDetails() {
+    document.getElementById('requestDetailsModal').style.display = 'none';
+    document.getElementById('requestNotes').value = '';
+}
+
+// Обработка заявки
+function processRequest(status) {
+    const notes = document.getElementById('requestNotes').value;
+
+    fetch(`/admin/api/supply-request/${currentRequestId}/process`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            status: status,
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showAlert(result.message, 'success');
+            closeRequestDetails();
+
+            // Обновляем строку в таблице
+            const row = document.getElementById(`request-${currentRequestId}`);
+            if (row) {
+                row.className = `request-row request-${result.new_status}`;
+
+                // Обновляем статус
+                const statusCell = row.cells[7];
+                if (status === 'approved') {
+                    statusCell.innerHTML = '<span class="badge badge-success">Утверждена</span>';
+
+                    // Убираем кнопки утверждения/отклонения
+                    const actionsCell = row.cells[9];
+                    actionsCell.innerHTML = `
+                        <div class="btn-group" style="display: flex; gap: 5px;">
+                            <button class="btn btn-sm btn-outline-info" onclick="showRequestDetails(${currentRequestId})" title="Подробнее">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    statusCell.innerHTML = '<span class="badge badge-danger">Отклонена</span>';
+                }
+            }
+        } else {
+            showAlert(result.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Ошибка сети: ' + error.message, 'danger');
+    });
+}
+
+// Быстрые действия
+function approveRequest(requestId) {
+    currentRequestId = requestId;
+    if (confirm('Утвердить эту заявку?')) {
+        processRequest('approved');
+    }
+}
+
+function rejectRequest(requestId) {
+    currentRequestId = requestId;
+    if (confirm('Отклонить эту заявку?')) {
+        processRequest('rejected');
+    }
+}
+
+function deleteRequest(requestId) {
+    if (confirm('Удалить эту заявку?')) {
+        fetch(`/admin/api/supply-request/${requestId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert(result.message, 'success');
+                // Удаляем строку из таблицы
+                const row = document.getElementById(`request-${requestId}`);
+                if (row) {
+                    row.remove();
+                }
+            } else {
+                showAlert(result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Ошибка сети: ' + error.message, 'danger');
+        });
+    }
+}
+</script>
+{% endblock %}
