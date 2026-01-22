@@ -8,8 +8,82 @@
     <!-- Основные стили -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
+    <!-- Стили календаря -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/calendar.css') }}">
+
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    <style>
+        /* Просто сдвигаем логотип левее */
+        .nav-container {
+            padding: 0 10px !important; /* Уменьшаем отступы по бокам */
+        }
+
+        .logo {
+            margin-right: auto !important; /* Автоматический отступ справа - сдвигаем все остальное вправо */
+            flex-shrink: 0; /* Не даем сжиматься */
+        }
+
+        /* Если все еще не хватает места - немного уменьшаем кнопки для админа */
+        .nav-links a {
+            padding: 8px 12px !important; /* Немного меньше отступов */
+            font-size: 0.9rem !important;
+        }
+
+        /* Стили для навбара повара */
+        .nav-orders {
+            position: relative;
+        }
+
+        .nav-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e74c3c;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+            min-width: 18px;
+            text-align: center;
+            border: 2px solid #2c3e50;
+        }
+
+        /* На очень узких экранах можно скрыть текст кнопок */
+        @media (max-width: 1200px) {
+            .nav-links a span:not(.badge) {
+                display: none;
+            }
+
+            .nav-links a i {
+                margin-right: 0 !important;
+                font-size: 1.1rem;
+            }
+
+            .user-info span:not(small) {
+                max-width: 100px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        /* На телефонах скрываем текст логотипа */
+        @media (max-width: 768px) {
+            .logo span {
+                display: none;
+            }
+
+            .logo i {
+                font-size: 1.3rem;
+            }
+
+            .user-info span:not(small) {
+                max-width: 60px;
+            }
+        }
+    </style>
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -23,74 +97,88 @@
 
                 <div class="nav-links">
                     {% if current_user.is_authenticated %}
-                        <span>{{ current_user.full_name }}</span>
+                        <span style="color: #ecf0f1; padding: 8px 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.1);">
+                            <i class="bi bi-person-badge"></i> {{ current_user.full_name }}
+                            <small style="font-size: 0.8rem; opacity: 0.8;">
+                                {% if current_user.role == 'student' %}(Ученик)
+                                {% elif current_user.role == 'cook' %}(Повар)
+                                {% elif current_user.role == 'admin' %}(Админ)
+                                {% endif %}
+                            </small>
+                        </span>
 
                         {% if current_user.role == 'student' %}
-                            <a href="{{ url_for('user.dashboard') }}">
+                            <a href="{{ url_for('user.dashboard') }}" class="{% if request.endpoint == 'user.dashboard' %}active{% endif %}">
                                 <i class="bi bi-house"></i> Главная
                             </a>
-                            <a href="{{ url_for('user.show_menu') }}">
+                            <a href="{{ url_for('user.show_menu') }}" class="{% if request.endpoint == 'user.show_menu' %}active{% endif %}">
                                 <i class="bi bi-menu-button-wide"></i> Меню
                             </a>
-                            <a href="{{ url_for('user.my_orders') }}">
+                            <a href="{{ url_for('user.my_orders') }}" class="{% if request.endpoint == 'user.my_orders' %}active{% endif %}">
                                 <i class="bi bi-receipt"></i> Заказы
-                            </a>
-                            <a href="{{ url_for('user.profile') }}">
-                                <i class="bi bi-person-circle"></i> Профиль
                             </a>
 
                             <!-- Кнопка корзины -->
-                            <a href="{{ url_for('user.view_cart') }}" class="nav-cart">
+                            <a href="{{ url_for('user.view_cart') }}" class="nav-cart {% if request.endpoint == 'user.view_cart' %}active{% endif %}">
                                 <i class="bi bi-cart3"></i> Корзина
                                 {% if cart_count and cart_count > 0 %}
                                 <span class="badge">{{ cart_count }}</span>
                                 {% endif %}
                             </a>
+
+                            <a href="{{ url_for('user.profile') }}" class="{% if request.endpoint == 'user.profile' %}active{% endif %}">
+                                <i class="bi bi-person-circle"></i> Профиль
+                            </a>
+
+                        {% elif current_user.role == 'cook' %}
+                            <a href="{{ url_for('cook.cook_dashboard') }}" class="{% if request.endpoint == 'cook.cook_dashboard' %}active{% endif %}">
+                                <i class="bi bi-speedometer2"></i> Панель
+                            </a>
+                            <a href="{{ url_for('cook.manage_orders') }}" class="nav-orders">
+                                <i class="bi bi-receipt"></i> Заказы
+                                {% if cook_total_active > 0 %}
+                                <span class="nav-badge" id="cook-orders-badge">{{ cook_total_active }}</span>
+                                {% else %}
+                                <span class="nav-badge" id="cook-orders-badge" style="display: none;">0</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('cook.manage_menu') }}" class="{% if request.endpoint == 'cook.manage_menu' %}active{% endif %}">
+                                <i class="bi bi-menu-button-wide"></i> Меню
+                            </a>
+                            <a href="{{ url_for('cook.supply_requests') }}" class="{% if request.endpoint == 'cook.supply_requests' %}active{% endif %}">
+                                <i class="bi bi-cart-plus"></i> Заявки
+                                {% if pending_requests_count and pending_requests_count > 0 %}
+                                <span class="badge" style="background: #3498db;">{{ pending_requests_count }}</span>
+                                {% endif %}
+                            </a>
+
+                        {% elif current_user.role == 'admin' %}
+                            <a href="{{ url_for('admin.admin_dashboard') }}" class="{% if request.endpoint == 'admin.admin_dashboard' %}active{% endif %}">
+                                <i class="bi bi-speedometer2"></i> Главная
+                            </a>
+                            <a href="{{ url_for('admin.manage_users') }}" class="{% if request.endpoint == 'admin.manage_users' %}active{% endif %}">
+                                <i class="bi bi-people"></i> Пользователи
+                            </a>
+                            <a href="{{ url_for('admin.admin_supply_requests') }}" class="{% if request.endpoint == 'admin.admin_supply_requests' %}active{% endif %}">
+                                <i class="bi bi-cart-plus"></i> Заявки
+                                {% if pending_requests_count and pending_requests_count > 0 %}
+                                <span class="badge" style="background: #3498db;">{{ pending_requests_count }}</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('admin.view_statistics') }}" class="{% if request.endpoint == 'admin.view_statistics' %}active{% endif %}">
+                                <i class="bi bi-graph-up"></i> Статистика
+                            </a>
+                            <a href="{{ url_for('admin.generate_reports') }}" class="{% if request.endpoint == 'admin.generate_reports' %}active{% endif %}">
+                                <i class="bi bi-file-earmark-text"></i> Отчеты
+                            </a>
+                            <a href="{{ url_for('admin.view_feedback') }}" class="{% if request.endpoint == 'admin.view_feedback' %}active{% endif %}">
+                                <i class="bi bi-chat-left-text"></i> Отзывы
+                            </a>
                         {% endif %}
 
-                        <a href="{{ url_for('auth.logout') }}">
+                        <a href="{{ url_for('auth.logout') }}" style="background: #e74c3c;">
                             <i class="bi bi-box-arrow-right"></i> Выйти
                         </a>
-                    {% elif current_user.role == 'cook' %}
-                        <a href="{{ url_for('cook.cook_dashboard') }}">
-                            <i class="bi bi-house"></i> Главная
-                        </a>
-                        <a href="{{ url_for('cook.manage_orders') }}">
-                            <i class="bi bi-receipt"></i> Заказы
-                        </a>
-                        <a href="{{ url_for('cook.manage_menu') }}">
-                            <i class="bi bi-menu-button-wide"></i> Меню
-                        </a>
-                        <a href="{{ url_for('cook.view_inventory') }}">
-                            <i class="bi bi-box"></i> Инвентарь
-                        </a>
-                        <a href="{{ url_for('cook.profile') }}">
-                            <i class="bi bi-person-circle"></i> Профиль
-                        </a>
-
-                    {% elif current_user.role == 'admin' %}
-                        <a href="{{ url_for('admin.admin_dashboard') }}">
-                            <i class="bi bi-house"></i> Главная
-                        </a>
-                        <a href="{{ url_for('admin.manage_users') }}">
-                            <i class="bi bi-people"></i> Пользователи
-                        </a>
-                        <a href="{{ url_for('admin.admin_supply_requests') }}">
-                            <i class="bi bi-cart-plus"></i> Заявки
-                            {% if pending_requests_count and pending_requests_count > 0 %}
-                                <span class="badge">{{ pending_requests_count }}</span>
-                            {% endif %}
-                        </a>
-                        <a href="{{ url_for('admin.view_statistics') }}">
-                            <i class="bi bi-graph-up"></i> Статистика
-                        </a>
-                        <a href="{{ url_for('admin.generate_reports') }}">
-                            <i class="bi bi-file-earmark-text"></i> Отчеты
-                        </a>
-                        <a href="{{ url_for('admin.view_feedback') }}">
-                            <i class="bi bi-chat-left-text"></i> Отзывы
-                        </a>
-
                     {% else %}
                         <a href="{{ url_for('auth.login') }}">
                             <i class="bi bi-box-arrow-in-right"></i> Вход
@@ -108,7 +196,10 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                        <button type="button" class="btn-close" onclick="this.parentElement.remove()">×</button>
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
@@ -120,6 +211,54 @@
         <p>Система управления школьной столовой © 2024</p>
     </footer>
 
+    <!-- Основной скрипт -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <!-- Скрипт календаря -->
+    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+
+    <!-- Скрипт для обновления навбара повара -->
+    <script>
+    // Функция обновления счетчиков в навбаре
+    function updateNavbarCounts() {
+        // Проверяем, является ли пользователь поваром
+        {% if current_user.is_authenticated and current_user.role == 'cook' %}
+        fetch('/cook/api/order-counts')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const counts = data.counts;
+
+                // Обновляем бейдж с общим количеством
+                const totalBadge = document.getElementById('cook-orders-badge');
+                if (totalBadge) {
+                    if (counts.total > 0) {
+                        totalBadge.textContent = counts.total;
+                        totalBadge.style.display = 'inline-block';
+                    } else {
+                        totalBadge.style.display = 'none';
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка обновления счетчиков:', error);
+        });
+        {% endif %}
+    }
+
+    // Автоматическое обновление счетчиков каждые 30 секунд
+    setInterval(updateNavbarCounts, 30000);
+
+    // Обновляем при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        updateNavbarCounts();
+    });
+    </script>
+
     {% block extra_js %}{% endblock %}
+
+    <!-- Контейнер для тостов -->
+    <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 </body>
 </html>

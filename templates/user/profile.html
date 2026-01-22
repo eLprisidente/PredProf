@@ -37,13 +37,89 @@
                     <span class="stat-label">Всего заказов</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value">{{ today_orders_count }}</span>
-                    <span class="stat-label">Заказов сегодня</span>
+                    <span class="stat-value" style="color: #27ae60;">{{ "%.2f"|format(current_user.balance) }}</span>
+                    <span class="stat-label">Баланс (₽)</span>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Раздел баланса -->
+    <div class="form-section" style="background: #f8f9fa; border-radius: 10px; padding: 25px; margin-bottom: 25px;">
+        <h3 style="color: #2c3e50; font-size: 1.2rem; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #eaeaea; display: flex; align-items: center; gap: 10px;">
+            <i class="bi bi-wallet2" style="color: #27ae60;"></i> Управление балансом
+        </h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
+            <!-- Текущий баланс -->
+            <div>
+                <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border: 2px solid #eaeaea;">
+                    <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 8px;">Текущий баланс</div>
+                    <div style="font-size: 2.5rem; font-weight: 700; color: #27ae60; line-height: 1;">
+                        {{ "%.2f"|format(current_user.balance) }} ₽
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.9rem; color: #7f8c8d;">
+                        <i class="bi bi-info-circle"></i> Средства доступны для оплаты заказов
+                    </div>
+                </div>
+            </div>
+
+            <!-- Пополнение баланса -->
+            <div>
+                <div style="background: white; border-radius: 8px; padding: 20px; border: 2px solid #eaeaea;">
+                    <h4 style="color: #2c3e50; margin-bottom: 20px; font-size: 1.1rem;">
+                        <i class="bi bi-cash-stack"></i> Пополнить баланс
+                    </h4>
+
+                    <form method="POST" action="{{ url_for('user.add_balance') }}" id="balance-form">
+                        {{ balance_form.hidden_tag() }}
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                                Сумма пополнения
+                            </label>
+                            <div style="display: flex; align-items: center;">
+                                {{ balance_form.amount(class="form-control", style="width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 1.1rem;") }}
+                                <span style="background: #f8f9fa; padding: 12px 15px; border: 1px solid #ddd; border-left: none; border-radius: 0 6px 6px 0; font-weight: 600;">₽</span>
+                            </div>
+                            {% if balance_form.amount.errors %}
+                                {% for error in balance_form.amount.errors %}
+                                <div style="color: #e74c3c; font-size: 0.85rem; margin-top: 5px;">
+                                    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- Быстрые суммы -->
+                        <div style="margin-bottom: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                <button type="button" class="quick-amount-btn" data-amount="100" style="padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                                    100 ₽
+                                </button>
+                                <button type="button" class="quick-amount-btn" data-amount="300" style="padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                                    300 ₽
+                                </button>
+                                <button type="button" class="quick-amount-btn" data-amount="500" style="padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                                    500 ₽
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn" style="width: 100%; padding: 14px; background: #27ae60; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                            <i class="bi bi-cash-coin"></i> Пополнить баланс
+                        </button>
+
+                        <div style="margin-top: 15px; font-size: 0.85rem; color: #7f8c8d; text-align: center;">
+                            <i class="bi bi-shield-check"></i> Безопасная оплата
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основная форма профиля -->
     <form method="POST" action="{{ url_for('user.profile') }}" id="profile-form" class="profile-form" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
 
@@ -129,6 +205,49 @@ document.addEventListener('DOMContentLoaded', function() {
             section.style.transform = 'translateY(0)';
         }, index * 100);
     });
+
+    // Обработка быстрых кнопок суммы
+    document.querySelectorAll('.quick-amount-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const amount = this.getAttribute('data-amount');
+            const amountField = document.querySelector('#amount');
+
+            if (amountField) {
+                amountField.value = amount;
+
+                // Визуальный эффект
+                this.style.background = '#27ae60';
+                this.style.color = 'white';
+                this.style.borderColor = '#27ae60';
+
+                // Сбрасываем стиль у других кнопок
+                document.querySelectorAll('.quick-amount-btn').forEach(btn => {
+                    if (btn !== this) {
+                        btn.style.background = '#f8f9fa';
+                        btn.style.color = '#2c3e50';
+                        btn.style.borderColor = '#ddd';
+                    }
+                });
+            }
+        });
+    });
+
+    // Подтверждение пополнения баланса
+    const balanceForm = document.getElementById('balance-form');
+    if (balanceForm) {
+        balanceForm.addEventListener('submit', function(e) {
+            const amountField = document.querySelector('#amount');
+            if (amountField) {
+                const amount = parseFloat(amountField.value);
+                if (amount >= 10) {
+                    const confirmed = confirm(`Вы подтверждаете пополнение баланса на ${amount} ₽?`);
+                    if (!confirmed) {
+                        e.preventDefault();
+                    }
+                }
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

@@ -3,17 +3,22 @@
 {% block title %}Оформление заказа{% endblock %}
 
 {% block content %}
-<h1>Оформление заказа</h1>
+<div class="dashboard-header" style="margin-bottom: 30px;">
+    <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+        Оформление заказа
+    </h1>
+    <p style="color: #7f8c8d; font-size: 1rem;">Заказ отдельного блюда</p>
+</div>
 
-<div style="max-width: 600px; margin: 0 auto;">
+<div class="dashboard-card">
     <form method="POST" action="{{ url_for('user.create_order') }}">
         {{ form.hidden_tag() }}
 
         <div style="margin-bottom: 20px;">
             {{ form.menu_item_id.label }}
-            {{ form.menu_item_id(class="form-control") }}
+            {{ form.menu_item_id(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
             {% if form.menu_item_id.errors %}
-                <div style="color: red; font-size: 0.9em;">
+                <div style="color: red; font-size: 0.9em; margin-top: 5px;">
                     {% for error in form.menu_item_id.errors %}
                         {{ error }}
                     {% endfor %}
@@ -21,35 +26,78 @@
             {% endif %}
         </div>
 
-        <div style="margin-bottom: 20px;">
-            {{ form.meal_time.label }}
-            {{ form.meal_time(class="form-control") }}
-            {% if form.meal_time.errors %}
-                <div style="color: red; font-size: 0.9em;">
-                    {% for error in form.meal_time.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                {{ form.meal_time.label }}
+                {{ form.meal_time(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
+                {% if form.meal_time.errors %}
+                    <div style="color: red; font-size: 0.9em; margin-top: 5px;">
+                        {% for error in form.meal_time.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
 
-        <div style="margin-bottom: 20px;">
-            {{ form.quantity.label }}
-            {{ form.quantity(class="form-control", type="number", min="1", max="5") }}
-            {% if form.quantity.errors %}
-                <div style="color: red; font-size: 0.9em;">
-                    {% for error in form.quantity.errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div>
+                {{ form.quantity.label }}
+                {{ form.quantity(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;", type="number", min="1", max="5") }}
+                {% if form.quantity.errors %}
+                    <div style="color: red; font-size: 0.9em; margin-top: 5px;">
+                        {% for error in form.quantity.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
         </div>
 
         <div style="margin-bottom: 20px;">
             {{ form.payment_type.label }}
-            {{ form.payment_type(class="form-control") }}
+
+            {% if form.payment_type.choices|length > 1 %}
+                <div style="margin-top: 10px;">
+                    {% for subfield in form.payment_type %}
+                        <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                {{ subfield(style="margin: 0;") }}
+                                <div>
+                                    <div style="font-weight: 600; color: #2c3e50;">
+                                        {% if subfield.data == 'single' %}
+                                            <i class="bi bi-wallet2" style="color: #27ae60;"></i> Оплата с баланса
+                                        {% else %}
+                                            <i class="bi bi-ticket-perforated" style="color: #f39c12;"></i> Оплата абонементом
+                                        {% endif %}
+                                    </div>
+                                    <div style="color: #7f8c8d; font-size: 0.9rem; margin-top: 5px;">
+                                        {% if subfield.data == 'single' %}
+                                            Баланс: {{ current_user.balance }} ₽
+                                        {% else %}
+                                            {% if has_active_subscription %}
+                                                Активный абонемент
+                                            {% else %}
+                                                Нет активного абонемента
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="margin-top: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa;">
+                    <div style="font-weight: 600; color: #2c3e50;">
+                        <i class="bi bi-wallet2" style="color: #27ae60;"></i> Оплата с баланса
+                    </div>
+                    <div style="color: #7f8c8d; font-size: 0.9rem; margin-top: 5px;">
+                        Баланс: {{ current_user.balance }} ₽
+                    </div>
+                </div>
+            {% endif %}
+
             {% if form.payment_type.errors %}
-                <div style="color: red; font-size: 0.9em;">
+                <div style="color: red; font-size: 0.9em; margin-top: 5px;">
                     {% for error in form.payment_type.errors %}
                         {{ error }}
                     {% endfor %}
@@ -59,9 +107,9 @@
 
         <div style="margin-bottom: 20px;">
             {{ form.order_date.label }}
-            {{ form.order_date(class="form-control", type="date") }}
+            {{ form.order_date(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;", type="date") }}
             {% if form.order_date.errors %}
-                <div style="color: red; font-size: 0.9em;">
+                <div style="color: red; font-size: 0.9em; margin-top: 5px;">
                     {% for error in form.order_date.errors %}
                         {{ error }}
                     {% endfor %}
@@ -69,11 +117,11 @@
             {% endif %}
         </div>
 
-        <div style="margin-bottom: 20px;">
+        <div style="margin-bottom: 25px;">
             {{ form.special_requests.label }}
-            {{ form.special_requests(class="form-control", rows="3", placeholder="Укажите аллергены или особые пожелания") }}
+            {{ form.special_requests(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;", rows="3", placeholder="Укажите аллергены или особые пожелания") }}
             {% if form.special_requests.errors %}
-                <div style="color: red; font-size: 0.9em;">
+                <div style="color: red; font-size: 0.9em; margin-top: 5px;">
                     {% for error in form.special_requests.errors %}
                         {{ error }}
                     {% endfor %}
@@ -81,7 +129,201 @@
             {% endif %}
         </div>
 
-        <button type="submit" class="btn" style="width: 100%; padding: 12px;">Оформить заказ</button>
+        <!-- Информация о выбранном блюде -->
+        <div id="menu-item-info" style="margin-bottom: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px; display: none;">
+            <h3 style="color: #2c3e50; font-size: 1.1rem; margin-bottom: 15px;">Информация о блюде</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <div style="color: #7f8c8d; font-size: 0.9rem;">Название:</div>
+                    <div style="font-weight: 600; color: #2c3e50;" id="item-name">-</div>
+                </div>
+                <div>
+                    <div style="color: #7f8c8d; font-size: 0.9rem;">Цена:</div>
+                    <div style="font-weight: 700; color: #27ae60;" id="item-price">-</div>
+                </div>
+                <div>
+                    <div style="color: #7f8c8d; font-size: 0.9rem;">Итого:</div>
+                    <div style="font-weight: 700; color: #2c3e50;" id="item-total">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn" style="background: #27ae60; padding: 12px 24px; flex: 1;">
+                <i class="bi bi-bag-check"></i> Оформить заказ
+            </button>
+            <a href="{{ url_for('user.show_menu') }}" class="btn" style="background: #7f8c8d; padding: 12px 24px;">
+                <i class="bi bi-x-circle"></i> Отмена
+            </a>
+        </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const menuItemSelect = document.getElementById('{{ form.menu_item_id.id }}');
+    const quantityInput = document.getElementById('{{ form.quantity.id }}');
+    const paymentTypeRadios = document.querySelectorAll('input[name="{{ form.payment_type.name }}"]');
+    const itemInfoDiv = document.getElementById('menu-item-info');
+    const itemNameSpan = document.getElementById('item-name');
+    const itemPriceSpan = document.getElementById('item-price');
+    const itemTotalSpan = document.getElementById('item-total');
+
+    // Данные о блюдах (предполагается, что они загружены на страницу)
+    const menuItems = {
+        {% for item in form.menu_item_id.choices %}
+            {{ item[0] }}: {
+                name: "{{ item[1].split(' - ')[0] }}",
+                price: parseFloat("{{ item[1].split(' - ')[1].split(' ')[0] }}")
+            },
+        {% endfor %}
+    };
+
+    // Обновление информации о блюде
+    function updateMenuItemInfo() {
+        const selectedItemId = menuItemSelect.value;
+        const quantity = parseInt(quantityInput.value) || 1;
+
+        if (selectedItemId && menuItems[selectedItemId]) {
+            const item = menuItems[selectedItemId];
+            const totalPrice = item.price * quantity;
+
+            itemNameSpan.textContent = item.name;
+            itemPriceSpan.textContent = item.price + ' ₽';
+            itemTotalSpan.textContent = totalPrice + ' ₽';
+            itemInfoDiv.style.display = 'block';
+
+            // Проверка способа оплаты
+            checkPaymentOptions(totalPrice);
+        } else {
+            itemInfoDiv.style.display = 'none';
+        }
+    }
+
+    // Проверка доступности способов оплаты
+    function checkPaymentOptions(totalPrice) {
+        const userBalance = {{ current_user.balance }};
+        const hasActiveSubscription = {{ has_active_subscription|tojson }};
+
+        // Проверяем оплату с баланса
+        if (userBalance < totalPrice) {
+            // Отключаем радио-кнопку баланса если недостаточно средств
+            paymentTypeRadios.forEach(radio => {
+                if (radio.value === 'single') {
+                    radio.disabled = true;
+                    const label = radio.closest('label');
+                    if (label) {
+                        label.style.opacity = '0.5';
+                        label.style.cursor = 'not-allowed';
+                        const infoDiv = label.querySelector('div > div:last-child');
+                        if (infoDiv) {
+                            infoDiv.innerHTML = `<span style="color: #e74c3c;">Недостаточно средств</span>`;
+                        }
+                    }
+                }
+            });
+        }
+
+        // Если нет активного абонемента, отключаем оплату абонементом
+        if (!hasActiveSubscription) {
+            paymentTypeRadios.forEach(radio => {
+                if (radio.value === 'subscription') {
+                    radio.disabled = true;
+                    const label = radio.closest('label');
+                    if (label) {
+                        label.style.opacity = '0.5';
+                        label.style.cursor = 'not-allowed';
+                        const infoDiv = label.querySelector('div > div:last-child');
+                        if (infoDiv) {
+                            infoDiv.innerHTML = `<span style="color: #e74c3c;">Нет активного абонемента</span>`;
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Обработчики событий
+    menuItemSelect.addEventListener('change', updateMenuItemInfo);
+    quantityInput.addEventListener('input', updateMenuItemInfo);
+
+    // Проверка при отправке формы
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const selectedItemId = menuItemSelect.value;
+        const quantity = parseInt(quantityInput.value) || 1;
+        const selectedPayment = document.querySelector('input[name="{{ form.payment_type.name }}"]:checked');
+
+        if (!selectedItemId) {
+            e.preventDefault();
+            alert('Выберите блюдо');
+            return;
+        }
+
+        if (!selectedPayment) {
+            e.preventDefault();
+            alert('Выберите способ оплаты');
+            return;
+        }
+
+        const item = menuItems[selectedItemId];
+        const totalPrice = item.price * quantity;
+
+        if (selectedPayment.value === 'single') {
+            const userBalance = {{ current_user.balance }};
+            if (userBalance < totalPrice) {
+                e.preventDefault();
+                alert('Недостаточно средств на балансе!');
+                return;
+            }
+        }
+
+        if (selectedPayment.value === 'subscription') {
+            const hasActiveSubscription = {{ has_active_subscription|tojson }};
+            if (!hasActiveSubscription) {
+                e.preventDefault();
+                alert('У вас нет активного абонемента!');
+                return;
+            }
+        }
+    });
+
+    // Инициализация
+    updateMenuItemInfo();
+});
+</script>
+
+<style>
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    outline: none;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+</style>
 {% endblock %}

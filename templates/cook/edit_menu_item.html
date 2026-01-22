@@ -3,79 +3,109 @@
 {% block title %}Редактировать блюдо{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="mb-4">Редактировать блюдо: {{ menu_item.name }}</h1>
-    
-    <div class="card">
-        <div class="card-body">
-            <form method="POST">
-                {{ form.hidden_tag() }}
-                
-                <div class="mb-3">
-                    {{ form.name.label(class="form-label") }}
-                    {{ form.name(class="form-control") }}
-                    {% if form.name.errors %}
-                        <div class="text-danger">{{ form.name.errors[0] }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                    {{ form.description.label(class="form-label") }}
-                    {{ form.description(class="form-control", rows="3") }}
-                    {% if form.description.errors %}
-                        <div class="text-danger">{{ form.description.errors[0] }}</div>
-                    {% endif %}
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        {{ form.price.label(class="form-label") }}
-                        <div class="input-group">
-                            {{ form.price(class="form-control") }}
-                            <span class="input-group-text">₽</span>
-                        </div>
-                        {% if form.price.errors %}
-                            <div class="text-danger">{{ form.price.errors[0] }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        {{ form.category.label(class="form-label") }}
-                        {{ form.category(class="form-select") }}
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        {{ form.meal_type.label(class="form-label") }}
-                        {{ form.meal_type(class="form-select") }}
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        <div class="form-check mt-4">
-                            {{ form.available(class="form-check-input") }}
-                            {{ form.available.label(class="form-check-label") }}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mb-3">
-                    {{ form.allergens.label(class="form-label") }}
-                    {{ form.allergens(class="form-control", rows="2") }}
-                </div>
-                
-                <div class="d-flex gap-2">
-                    {{ form.submit(class="btn btn-primary") }}
-                    <a href="{{ url_for('cook.manage_menu') }}" class="btn btn-secondary">Отмена</a>
-                    <form action="{{ url_for('cook.delete_menu_item', item_id=menu_item.id) }}" 
-                          method="POST" 
-                          class="ms-auto"
-                          onsubmit="return confirm('Вы уверены, что хотите удалить это блюдо?');">
-                        <button type="submit" class="btn btn-danger">Удалить</button>
-                    </form>
-                </div>
-            </form>
+<div class="dashboard-header" style="margin-bottom: 30px;">
+    <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+        Редактировать блюдо
+    </h1>
+    <p style="color: #7f8c8d; font-size: 1rem;">{{ menu_item.name }}</p>
+</div>
+
+<div class="dashboard-card">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+
+        <!-- Текущее изображение -->
+        {% if menu_item.image_url %}
+        <div style="margin-bottom: 20px; text-align: center;">
+            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                Текущее изображение
+            </label>
+            <img src="{{ url_for('static', filename='uploads/menu_items/' + menu_item.image_url) }}"
+                 alt="{{ menu_item.name }}"
+                 style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid #ddd;">
+            <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 5px;">
+                Чтобы изменить изображение, загрузите новое ниже
+            </p>
         </div>
-    </div>
+        {% endif %}
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                Новое изображение (необязательно)
+            </label>
+            {{ form.image(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
+            <small style="color: #7f8c8d; font-size: 0.85rem; display: block; margin-top: 5px;">
+                Поддерживаемые форматы: JPG, PNG, GIF, WebP. Оставьте пустым, чтобы сохранить текущее.
+            </small>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                Название блюда
+            </label>
+            {{ form.name(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                Описание
+            </label>
+            {{ form.description(class="form-control", rows="3", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    Цена
+                </label>
+                <div style="display: flex; align-items: center;">
+                    {{ form.price(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px 0 0 6px;") }}
+                    <span style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-left: none; border-radius: 0 6px 6px 0;">₽</span>
+                </div>
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    Категория
+                </label>
+                {{ form.category(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    Тип питания
+                </label>
+                {{ form.meal_type(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    Доступность
+                </label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    {{ form.available(style="width: 20px; height: 20px;") }}
+                    <span>Доступно для заказа</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                Аллергены
+            </label>
+            {{ form.allergens(class="form-control", rows="2", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;", placeholder="Глютен, лактоза, орехи...") }}
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn" style="background: #27ae60; padding: 12px 24px;">
+                <i class="bi bi-check-circle"></i> Сохранить
+            </button>
+            <a href="{{ url_for('cook.manage_menu') }}" class="btn" style="background: #7f8c8d; padding: 12px 24px;">
+                <i class="bi bi-x-circle"></i> Отмена
+            </a>
+        </div>
+    </form>
 </div>
 {% endblock %}

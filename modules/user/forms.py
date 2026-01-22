@@ -3,6 +3,19 @@ from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, SelectField, IntegerField, TextAreaField, SubmitField, DateField, RadioField
 from wtforms.validators import DataRequired, NumberRange, Optional, Length, Email
 from datetime import datetime
+from flask_wtf import FlaskForm
+from wtforms import DecimalField, SelectField, SubmitField
+from wtforms.validators import DataRequired, NumberRange
+
+
+class BalanceForm(FlaskForm):
+    """Форма пополнения баланса"""
+    amount = DecimalField('Сумма пополнения', places=2, validators=[
+        DataRequired(message='Введите сумму пополнения'),
+        NumberRange(min=10, max=10000, message='Сумма должна быть от 10 до 10 000 ₽')
+    ], render_kw={"placeholder": "100.00", "step": "10"})
+
+    submit = SubmitField('Пополнить баланс')
 
 
 class OrderForm(FlaskForm):
