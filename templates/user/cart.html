@@ -3,134 +3,190 @@
 {% block title %}Корзина{% endblock %}
 
 {% block content %}
-<div class="cart-container">
-    <div class="cart-header">
-        <div>
-            <h1 style="font-size: 1.8rem; margin-bottom: 5px;">
-                <i class="bi bi-cart3"></i> Корзина
-            </h1>
-            <div class="cart-subtitle">
-                {% if cart_items %}
-                    {{ cart_items|length }} товар(а) на сумму {{ total_price }} ₽
-                {% else %}
-                    Корзина пуста
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="cart-actions">
-            <a href="{{ url_for('user.show_menu') }}" class="btn btn-outline btn-sm">
-                <i class="bi bi-arrow-left"></i> Назад
-            </a>
-
+<div class="container">
+    <div class="dashboard-header" style="margin-bottom: 30px;">
+        <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+            Корзина
+        </h1>
+        <p style="color: #7f8c8d; font-size: 1rem;">
             {% if cart_items %}
-            <form action="{{ url_for('user.clear_cart') }}" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-danger btn-sm">
-                    <i class="bi bi-trash"></i> Очистить
-                </button>
-            </form>
+                У вас {{ total_items }} товар(ов) на сумму {{ total_price }} ₽
+            {% else %}
+                Ваша корзина пуста
             {% endif %}
-        </div>
+        </p>
     </div>
 
     {% if cart_items %}
-    <div class="cart-content">
-        <!-- Товары в корзине -->
-        <div class="cart-items-section">
-            <h3 style="font-size: 1.2rem; margin-bottom: 15px; color: #2c3e50;">
-                <i class="bi bi-list"></i> Товары в корзине
-            </h3>
-
-            <div class="cart-items-list">
-                {% for item in cart_items %}
-                <div class="cart-item-compact">
-                    <div class="cart-item-left">
-                        <div class="cart-item-name">{{ item.menu_item.name }}</div>
-                        <div class="cart-item-desc">{{ item.menu_item.description|truncate(60) }}</div>
-                        <div class="cart-item-price-single">{{ item.menu_item.price }} ₽/шт</div>
-                    </div>
-
-                    <div class="cart-item-right">
-                        <div class="cart-item-controls-compact">
-                            <form action="{{ url_for('user.update_cart_item', item_id=item.id) }}" method="POST" class="quantity-form">
-                                <input type="hidden" name="action" value="decrease">
-                                <button type="submit" class="quantity-btn-small" {% if item.quantity <= 1 %}disabled{% endif %}>
-                                    <i class="bi bi-dash"></i>
+    <!-- Таблица товаров в корзине -->
+    <div class="dashboard-card">
+        <div class="table-responsive">
+            <table class="admin-table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;"></th>
+                        <th>Товар</th>
+                        <th style="width: 120px;">Цена</th>
+                        <th style="width: 150px;">Количество</th>
+                        <th style="width: 100px;">Сумма</th>
+                        <th style="width: 70px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                    <tr>
+                        <td>
+                            {% if item.menu_item.image_url %}
+                            <div style="width: 50px; height: 50px; border-radius: 6px; overflow: hidden;">
+                                <img src="{{ url_for('static', filename='uploads/menu_items/' + item.menu_item.image_url) }}"
+                                     alt="{{ item.menu_item.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            {% else %}
+                            <div style="width: 50px; height: 50px; background: #f8f9fa; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-egg-fried" style="color: #bdc3c7;"></i>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-weight: 600; color: #2c3e50; margin-bottom: 5px;">
+                                {{ item.menu_item.name }}
+                            </div>
+                            <div style="font-size: 0.85rem; color: #7f8c8d;">
+                                {{ item.menu_item.description|truncate(60) }}
+                            </div>
+                        </td>
+                        <td style="font-weight: 600; color: #2c3e50;">
+                            {{ item.menu_item.price }} ₽
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <form action="{{ url_for('user.update_cart_item', item_id=item.id) }}" method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="decrease">
+                                    <button type="submit" class="quantity-btn" style="width: 30px; height: 30px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">-</button>
+                                </form>
+                                <span style="font-weight: 600; min-width: 30px; text-align: center;">{{ item.quantity }}</span>
+                                <form action="{{ url_for('user.update_cart_item', item_id=item.id) }}" method="POST" style="display: inline;">
+                                    <input type="hidden" name="action" value="increase">
+                                    <button type="submit" class="quantity-btn" style="width: 30px; height: 30px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">+</button>
+                                </form>
+                            </div>
+                        </td>
+                        <td style="font-weight: 700; color: #27ae60;">
+                            {{ item.item_total }} ₽
+                        </td>
+                        <td>
+                            <form action="{{ url_for('user.remove_from_cart', item_id=item.id) }}" method="POST">
+                                <button type="submit" style="background: none; border: none; color: #e74c3c; cursor: pointer;" title="Удалить">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </form>
-
-                            <span class="quantity-value-small">{{ item.quantity }}</span>
-
-                            <form action="{{ url_for('user.update_cart_item', item_id=item.id) }}" method="POST" class="quantity-form">
-                                <input type="hidden" name="action" value="increase">
-                                <button type="submit" class="quantity-btn-small">
-                                    <i class="bi bi-plus"></i>
-                                </button>
-                            </form>
-                        </div>
-
-                        <div class="cart-item-total-compact">
-                            <strong>{{ item.menu_item.price * item.quantity }} ₽</strong>
-                        </div>
-
-                        <form action="{{ url_for('user.remove_from_cart', item_id=item.id) }}" method="POST">
-                            <button type="submit" class="btn btn-sm btn-danger" style="padding: 4px 8px;">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+    </div>
 
-        <!-- Итого и оформление -->
-        <div class="cart-summary-compact">
-            <div class="summary-header">
-                <h3 style="font-size: 1.2rem; margin: 0;">
-                    <i class="bi bi-receipt"></i> Оформление заказа
-                </h3>
-            </div>
+    <!-- Форма оформления заказа -->
+    <div class="dashboard-card" style="margin-top: 30px;">
+        <h2 style="color: #2c3e50; font-size: 1.3rem; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0;">
+            Оформление заказа
+        </h2>
 
-            <div class="summary-total-compact">
-                <div class="total-row">
-                    <span>Итого:</span>
-                    <span class="total-price">{{ total_price }} ₽</span>
+        <form action="{{ url_for('user.checkout') }}" method="POST" id="checkoutForm">
+            <!-- Скрытое поле для даты в формате Y-m-d -->
+            <input type="hidden" id="order_date_hidden" name="order_date" value="{{ default_date_flatpickr }}">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">Дата получения *</label>
+                    <div style="position: relative;">
+                        <input type="text"
+                               id="order_date_display"
+                               name="order_date_display"
+                               class="form-control datepicker"
+                               required
+                               placeholder="Выберите дату..."
+                               value="{{ default_date }}"
+                               style="width: 100%; padding: 10px 40px 10px 10px; border: 1px solid #ddd; border-radius: 6px; background: white;">
+                        <i class="bi bi-calendar" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #3498db; pointer-events: none;"></i>
+                    </div>
+                    <small style="display: block; margin-top: 5px; color: #7f8c8d; font-size: 0.85rem;">
+                        Доступно: с {{ min_date }} по {{ max_date }}
+                    </small>
                 </div>
-            </div>
 
-            <form action="{{ url_for('user.checkout') }}" method="POST" class="checkout-form-compact">
-                <div class="form-group-small">
-                    <label class="form-label-small"><i class="bi bi-clock"></i> Время приема пищи</label>
-                    <select name="meal_time" class="form-control-small" required>
-                        <option value="breakfast">Завтрак</option>
-                        <option value="lunch">Обед</option>
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">Время приема пищи *</label>
+                    <select name="meal_time" class="form-control" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <option value="">Выберите время...</option>
+                        <option value="breakfast">Завтрак (8:00 - 10:00)</option>
+                        <option value="lunch">Обед (12:00 - 14:00)</option>
                     </select>
                 </div>
+            </div>
 
-                <div class="form-group-small">
-                    <label class="form-label-small"><i class="bi bi-calendar"></i> Дата заказа</label>
-                    <input type="date" name="order_date" class="form-control-small" value="{{ today }}" required>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">Особые пожелания</label>
+                <textarea name="special_requests"
+                          class="form-control"
+                          rows="2"
+                          placeholder="Например: без лука, меньше соли и т.д."
+                          style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">Способ оплаты</label>
+                <div style="display: flex; gap: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="payment_type" value="single" checked>
+                        <span>Разовая оплата</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="payment_type" value="subscription">
+                        <span>По абонементу</span>
+                    </label>
                 </div>
-
-                <div class="form-group-small">
-                    <label class="form-label-small"><i class="bi bi-chat-left-text"></i> Особые пожелания</label>
-                    <textarea name="special_requests" class="form-control-small" rows="2"
-                              placeholder="Аллергии, особые пожелания..."></textarea>
+                <div id="subscriptionWarning" class="alert alert-warning" style="display: none; margin-top: 10px; padding: 10px 15px; font-size: 0.9rem;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    У вас нет действующего абонемента.
+                    <a href="{{ url_for('user.purchase_subscription') }}" style="color: #856404; text-decoration: underline; margin-left: 5px;">Приобрести</a>
                 </div>
+            </div>
 
-                <button type="submit" class="checkout-btn-compact">
-                    <i class="bi bi-check-circle"></i> Оформить заказ
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 1.1rem; font-weight: 600; color: #2c3e50;">Итого к оплате:</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #27ae60;">{{ total_price }} ₽</div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px; font-size: 1rem;">
+                    <i class="bi bi-bag-check"></i> Оформить заказ
+                </button>
+            </div>
+        </form>
+
+        <!-- Кнопка очистки корзины ВНЕ формы оформления заказа -->
+        <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+            <form action="{{ url_for('user.clear_cart') }}" method="POST" onsubmit="return confirm('Вы уверены, что хотите очистить корзину?');" style="display: inline-block;">
+                <button type="submit" class="btn btn-danger" style="padding: 8px 16px;">
+                    <i class="bi bi-trash"></i> Очистить корзину
                 </button>
             </form>
         </div>
     </div>
     {% else %}
-    <div class="empty-cart-compact">
-        <i class="bi bi-cart" style="font-size: 2.5rem;"></i>
-        <h3 style="font-size: 1.3rem;">Корзина пуста</h3>
-        <p style="font-size: 0.95rem;">Добавьте блюда из меню в корзину</p>
-        <a href="{{ url_for('user.show_menu') }}" class="btn" style="padding: 8px 20px;">
+    <!-- ПУСТАЯ КОРЗИНА с НОРМАЛЬНОЙ кнопкой -->
+    <div class="dashboard-card" style="text-align: center; padding: 40px 20px;">
+        <div style="margin-bottom: 20px;">
+            <i class="bi bi-cart-x" style="font-size: 2.5rem; color: #bdc3c7;"></i>
+        </div>
+        <h3 style="color: #2c3e50; margin-bottom: 10px; font-size: 1.2rem;">Корзина пуста</h3>
+        <p style="color: #7f8c8d; margin-bottom: 20px; font-size: 0.95rem;">Добавьте товары из меню</p>
+        <a href="{{ url_for('user.show_menu') }}" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.95rem;">
             <i class="bi bi-menu-button-wide"></i> Перейти к меню
         </a>
     </div>
@@ -139,248 +195,310 @@
 {% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
-.cart-content {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 20px;
-    margin-top: 20px;
+/* Стили для календаря Flatpickr */
+.flatpickr-calendar {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+    border-radius: 12px !important;
+    border: 1px solid #eaeaea !important;
+    animation: none !important;
 }
 
-.cart-items-section {
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    border: 1px solid #eaeaea;
+.flatpickr-day {
+    border-radius: 6px !important;
+    margin: 2px !important;
 }
 
-.cart-items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+.flatpickr-day.selected {
+    background: #3498db !important;
+    border-color: #3498db !important;
 }
 
-.cart-item-compact {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    border-left: 3px solid #3498db;
+.flatpickr-day.today {
+    border: 2px solid #3498db !important;
+    font-weight: 600 !important;
 }
 
-.cart-item-left {
-    flex: 1;
-    min-width: 0;
+.flatpickr-day:hover {
+    background: #f8f9fa !important;
 }
 
-.cart-item-name {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 1rem;
-    margin-bottom: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.flatpickr-months .flatpickr-month {
+    background: #3498db !important;
+    color: white !important;
+    fill: white !important;
+    border-radius: 12px 12px 0 0 !important;
 }
 
-.cart-item-desc {
-    color: #7f8c8d;
-    font-size: 0.85rem;
-    margin-bottom: 6px;
-    line-height: 1.3;
+.flatpickr-weekday {
+    color: #2c3e50 !important;
+    font-weight: 600 !important;
 }
 
-.cart-item-price-single {
-    font-size: 0.9rem;
-    color: #27ae60;
-    font-weight: 500;
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month .numInputWrapper {
+    color: white !important;
 }
 
-.cart-item-right {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-left: 10px;
+.flatpickr-current-month input.cur-year {
+    color: white !important;
+    font-weight: 600 !important;
 }
 
-.cart-item-controls-compact {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.flatpickr-day.inRange {
+    background: rgba(52, 152, 219, 0.1) !important;
+    border-color: rgba(52, 152, 219, 0.1) !important;
 }
 
-.quantity-form {
-    display: inline;
-}
-
-.quantity-btn-small {
-    width: 28px;
-    height: 28px;
-    border: 1px solid #ddd;
-    background: white;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.form-control.datepicker {
     cursor: pointer;
-    font-size: 0.9rem;
-    color: #666;
+    background-color: white !important;
 }
 
-.quantity-btn-small:hover:not(:disabled) {
-    background: #f0f0f0;
+.form-control.datepicker:hover {
+    border-color: #3498db !important;
 }
 
-.quantity-btn-small:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.quantity-value-small {
-    font-weight: 600;
-    font-size: 1rem;
-    min-width: 25px;
-    text-align: center;
-}
-
-.cart-item-total-compact {
-    font-weight: 700;
-    color: #2c3e50;
-    font-size: 1.1rem;
-    min-width: 70px;
-    text-align: right;
-}
-
-.cart-summary-compact {
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    border: 1px solid #eaeaea;
-    height: fit-content;
-    position: sticky;
-    top: 90px;
-}
-
-.summary-header {
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #f0f0f0;
-}
-
-.summary-total-compact {
-    margin-bottom: 20px;
-}
-
-.total-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    font-size: 1.1rem;
-}
-
-.total-price {
-    font-weight: 800;
-    color: #27ae60;
-    font-size: 1.4rem;
-}
-
-.form-group-small {
-    margin-bottom: 15px;
-}
-
-.form-label-small {
-    display: block;
-    margin-bottom: 5px;
-    color: #2c3e50;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.form-control-small {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    transition: all 0.3s;
-}
-
-.form-control-small:focus {
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    outline: none;
-}
-
-.checkout-btn-compact {
-    width: 100%;
-    padding: 12px;
-    background: #27ae60;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.checkout-btn-compact:hover {
-    background: #219653;
-}
-
-.empty-cart-compact {
-    text-align: center;
-    padding: 40px 20px;
-}
-
-.empty-cart-compact i {
-    color: #bdc3c7;
-    margin-bottom: 15px;
-}
-
-.empty-cart-compact h3 {
-    color: #2c3e50;
-    margin-bottom: 8px;
-}
-
-.empty-cart-compact p {
-    color: #7f8c8d;
-    margin-bottom: 20px;
-    font-size: 0.95rem;
-}
-
-@media (max-width: 768px) {
-    .cart-content {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    .cart-summary-compact {
-        position: static;
-    }
-
-    .cart-item-compact {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
-
-    .cart-item-right {
-        justify-content: space-between;
-        margin-left: 0;
-        padding-top: 10px;
-        border-top: 1px solid #eee;
-    }
+/* Убираем нативное оформление в браузерах */
+.form-control.datepicker::-webkit-calendar-picker-indicator {
+    display: none !important;
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Подключаем Flatpickr -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+
+<script>
+// Инициализация Flatpickr календаря
+document.addEventListener('DOMContentLoaded', function() {
+    // Элемент для отображения даты
+    const orderDateDisplay = document.getElementById('order_date_display');
+    // Скрытое поле для отправки даты в формате Y-m-d
+    const orderDateHidden = document.getElementById('order_date_hidden');
+
+    if (orderDateDisplay) {
+        // Инициализируем Flatpickr
+        const fp = flatpickr(orderDateDisplay, {
+            locale: "ru",
+            dateFormat: "d.m.Y",  // Формат отображения: 31.12.2024
+            altFormat: "Y-m-d",    // Формат для скрытого поля
+            altInput: false,
+            minDate: "{{ min_date_flatpickr }}",  // Формат Y-m-d
+            maxDate: "{{ max_date_flatpickr }}",  // Формат Y-m-d
+            defaultDate: "{{ default_date_flatpickr }}",  // Формат Y-m-d
+            weekNumbers: false,
+            disableMobile: true,  // Отключаем нативное меню на мобильных
+            allowInput: false,    // Запрещаем ручной ввод
+            clickOpens: true,     // Открытие по клику
+            onOpen: function(selectedDates, dateStr, instance) {
+                console.log('Календарь открыт');
+            },
+            onChange: function(selectedDates, dateStr, instance) {
+                // Обновляем скрытое поле при выборе даты
+                if (selectedDates.length > 0) {
+                    const selectedDate = selectedDates[0];
+                    const yyyy = selectedDate.getFullYear();
+                    const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const dd = String(selectedDate.getDate()).padStart(2, '0');
+                    const formattedDate = `${yyyy}-${mm}-${dd}`;
+                    orderDateHidden.value = formattedDate;
+                    console.log('Выбрана дата:', formattedDate);
+                }
+            },
+            onReady: function(selectedDates, dateStr, instance) {
+                console.log('Календарь готов');
+                // Обновляем скрытое поле начальным значением
+                if (selectedDates.length > 0) {
+                    const selectedDate = selectedDates[0];
+                    const yyyy = selectedDate.getFullYear();
+                    const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const dd = String(selectedDate.getDate()).padStart(2, '0');
+                    orderDateHidden.value = `${yyyy}-${mm}-${dd}`;
+                }
+            }
+        });
+
+        console.log('Flatpickr инициализирован:', fp);
+
+        // Открытие календаря по клику на поле
+        orderDateDisplay.addEventListener('click', function() {
+            fp.open();
+        });
+    }
+
+    // Проверка абонемента
+    const subscriptionRadio = document.querySelector('input[value="subscription"]');
+    const subscriptionWarning = document.getElementById('subscriptionWarning');
+
+    function checkSubscription() {
+        if (subscriptionRadio && subscriptionRadio.checked) {
+            // Показываем предупреждение, пока идет проверка
+            subscriptionWarning.innerHTML = '<i class="bi bi-hourglass-split"></i> Проверяем абонемент...';
+            subscriptionWarning.style.display = 'block';
+
+            fetch('/user/api/check-subscription')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.has_subscription) {
+                        subscriptionWarning.style.display = 'none';
+                    } else {
+                        subscriptionWarning.innerHTML = `
+                            <i class="bi bi-exclamation-triangle"></i>
+                            У вас нет действующего абонемента.
+                            <a href="{{ url_for('user.purchase_subscription') }}" style="color: #856404; text-decoration: underline; margin-left: 5px;">Приобрести</a>
+                        `;
+                        subscriptionWarning.style.display = 'block';
+                    }
+                })
+                .catch(() => {
+                    subscriptionWarning.innerHTML = `
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Не удалось проверить абонемент. Повторите попытку.
+                    `;
+                    subscriptionWarning.style.display = 'block';
+                });
+        } else {
+            subscriptionWarning.style.display = 'none';
+        }
+    }
+
+    if (subscriptionRadio) {
+        subscriptionRadio.addEventListener('change', checkSubscription);
+
+        // Проверяем все радио-кнопки способа оплаты
+        document.querySelectorAll('input[name="payment_type"]').forEach(radio => {
+            radio.addEventListener('change', checkSubscription);
+        });
+    }
+
+    // Обработка формы оформления заказа
+    const checkoutForm = document.getElementById('checkoutForm');
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function(e) {
+            const mealTime = this.querySelector('select[name="meal_time"]');
+            const orderDate = orderDateHidden.value;
+
+            // Проверяем, что дата выбрана
+            if (!orderDate || orderDateHidden.value === '') {
+                e.preventDefault();
+                showAlert('Пожалуйста, выберите дату получения заказа', 'danger');
+                orderDateDisplay.focus();
+                return false;
+            }
+
+            if (!mealTime.value) {
+                e.preventDefault();
+                showAlert('Пожалуйста, выберите время приема пищи', 'danger');
+                mealTime.focus();
+                return false;
+            }
+
+            // Проверяем, что дата не в прошлом
+            const selectedDate = new Date(orderDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (selectedDate < today) {
+                e.preventDefault();
+                showAlert('Нельзя выбрать прошедшую дату', 'danger');
+                return false;
+            }
+
+            // Проверяем абонемент
+            if (subscriptionRadio && subscriptionRadio.checked && subscriptionWarning.style.display === 'block') {
+                e.preventDefault();
+                showAlert('У вас нет действующего абонемента. Приобретите абонемент или выберите разовую оплату.', 'danger');
+                return false;
+            }
+
+            // Подтверждение заказа
+            if (!confirm(`Оформить заказ на ${orderDateDisplay.value}?`)) {
+                e.preventDefault();
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    // Функция для показа уведомлений
+    function showAlert(message, type) {
+        // Удаляем старые уведомления
+        const oldAlerts = document.querySelectorAll('.custom-alert');
+        oldAlerts.forEach(alert => alert.remove());
+
+        // Создаем новое уведомление
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `custom-alert alert alert-${type}`;
+        alertDiv.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideInRight 0.3s ease;
+        `;
+        alertDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <span>${message}</span>
+                <button type="button" onclick="this.parentElement.parentElement.remove()"
+                        style="background: none; border: none; font-size: 1.2rem; color: inherit; cursor: pointer; padding: 0 0 0 10px; line-height: 1;">
+                    ×
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(alertDiv);
+
+        // Автоматическое удаление через 5 секунд
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    // Анимация для уведомлений
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
 {% endblock %}

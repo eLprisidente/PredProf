@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, jsonify
 from flask_login import login_required, current_user
 from modules.core.database import db
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from werkzeug.utils import secure_filename
 import os
 
@@ -23,7 +23,6 @@ def dashboard():
         return redirect(url_for('index'))
 
     from modules.core.models import MenuItem, Order, Subscription
-    from datetime import datetime, date
 
     # Сегодняшние заказы пользователя
     today_orders = Order.query.filter_by(
@@ -37,7 +36,6 @@ def dashboard():
     ).order_by(Order.order_date.desc(), Order.created_at.desc()).limit(10).all()
 
     # Меню на сегодня (показываем все доступные блюда)
-    # В будущем здесь будет фильтрация по дневному меню
     today_menu_items = MenuItem.query.filter_by(
         available=True
     ).order_by(MenuItem.category, MenuItem.name).all()
@@ -46,8 +44,8 @@ def dashboard():
     orders_count = Order.query.filter_by(user_id=current_user.id).count()
     today_orders_count = len(today_orders)
 
-    # Баланс и абонементы (заглушки, нужно реализовать)
-    user_balance = 0  # Здесь нужно получить реальный баланс
+    # Баланс и абонементы
+    user_balance = 0
     subscription_count = Subscription.query.filter_by(
         user_id=current_user.id,
         is_active=True
@@ -97,6 +95,7 @@ def view_cart():
         return redirect(url_for('index'))
 
     from modules.core.models import MenuItem
+    from datetime import date, timedelta
 
     cart = session.get('cart', {})
     cart_items = []
@@ -117,11 +116,32 @@ def view_cart():
             total_price += item_total
             total_items += quantity
 
+    # Определяем доступные даты
+    today = date.today()
+    min_date = today
+    max_date = today + timedelta(days=7)
+
+    # Форматируем даты для Flatpickr
+    min_date_flatpickr = min_date.strftime('%Y-%m-%d')
+    max_date_flatpickr = max_date.strftime('%Y-%m-%d')
+    default_date_flatpickr = today.strftime('%Y-%m-%d')
+
+    # Форматируем даты для отображения
+    min_date_display = min_date.strftime('%d.%m.%Y')
+    max_date_display = max_date.strftime('%d.%m.%Y')
+    default_date_display = today.strftime('%d.%m.%Y')
+
     return render_template('user/cart.html',
                            cart_items=cart_items,
                            total_price=total_price,
                            total_items=total_items,
-                           today=date.today())
+                           today=today,
+                           min_date=min_date_display,
+                           max_date=max_date_display,
+                           default_date=default_date_display,
+                           min_date_flatpickr=min_date_flatpickr,
+                           max_date_flatpickr=max_date_flatpickr,
+                           default_date_flatpickr=default_date_flatpickr)
 
 
 @user_bp.route('/cart/add/<int:item_id>', methods=['POST'])
@@ -129,14 +149,16 @@ def view_cart():
 def add_to_cart(item_id):
     """Добавить товар в корзину"""
     if current_user.role != 'student':
-        return jsonify({'success': False, 'message': 'Доступ запрещен'}), 403
+        flash('Доступ запрещен', 'danger')
+        return redirect(url_for('index'))
 
     from modules.core.models import MenuItem
 
     menu_item = MenuItem.query.get_or_404(item_id)
 
     if not menu_item.available:
-        return jsonify({'success': False, 'message': 'Товар недоступен'}), 400
+        flash('Товар недоступен', 'warning')
+        return redirect(url_for('user.show_menu'))
 
     cart = session.get('cart', {})
 
@@ -146,17 +168,16 @@ def add_to_cart(item_id):
         cart[str(item_id)] = {
             'quantity': 1,
             'name': menu_item.name,
-            'price': float(menu_item.price)
+            'price': float(menu_item.price),
+            'image': menu_item.image_url or None
         }
+    flash(f'Товар добавлен в корзину', 'success')
 
     session['cart'] = cart
     session.modified = True
 
-    return jsonify({
-        'success': True,
-        'message': f'{menu_item.name} добавлен в корзину',
-        'cart_count': get_cart_count()
-    })
+    # Перенаправляем на ту же страницу, откуда пришел запрос
+    return redirect(request.referrer or url_for('user.show_menu'))
 
 
 @user_bp.route('/cart/update/<int:item_id>', methods=['POST'])
@@ -173,12 +194,16 @@ def update_cart_item(item_id):
     if str(item_id) in cart:
         if action == 'increase':
             cart[str(item_id)]['quantity'] += 1
+            flash(f'Количество увеличено', 'success')
         elif action == 'decrease':
             if cart[str(item_id)]['quantity'] > 1:
                 cart[str(item_id)]['quantity'] -= 1
+                flash(f'Количество уменьшено', 'success')
             else:
                 # Если количество 1 и нажали уменьшить, удаляем товар
+                item_name = cart[str(item_id)].get('name', 'Товар')
                 del cart[str(item_id)]
+                flash(f'{item_name} удален из корзины', 'success')
 
     session['cart'] = cart
     session.modified = True
@@ -228,8 +253,8 @@ def checkout():
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
 
-    from modules.core.models import MenuItem, Order
-    from modules.core.services.payment_service import PaymentService
+    from modules.core.models import MenuItem, Order, Subscription
+    from datetime import datetime, date, timedelta
 
     cart = session.get('cart', {})
 
@@ -239,16 +264,44 @@ def checkout():
 
     try:
         meal_time = request.form.get('meal_time')
-        order_date_str = request.form.get('order_date')
+        order_date_str = request.form.get('order_date')  # Формат: YYYY-MM-DD
         special_requests = request.form.get('special_requests', '')
+        payment_type = request.form.get('payment_type', 'single')
 
         if not meal_time or not order_date_str:
             flash('Заполните все обязательные поля', 'danger')
             return redirect(url_for('user.view_cart'))
 
-        order_date = datetime.strptime(order_date_str, '%Y-%m-%d').date()
+        # Преобразуем дату из формата YYYY-MM-DD
+        try:
+            order_date = datetime.strptime(order_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Некорректный формат даты', 'danger')
+            return redirect(url_for('user.view_cart'))
 
-        # Создаем заказы для каждого товара в корзине
+        # Проверяем, что дата не в прошлом
+        if order_date < date.today():
+            flash('Нельзя заказать на прошедшую дату', 'danger')
+            return redirect(url_for('user.view_cart'))
+
+        # Проверяем, что дата не слишком далеко в будущем
+        max_date = date.today() + timedelta(days=7)
+        if order_date > max_date:
+            flash('Можно заказать максимум на 7 дней вперед', 'danger')
+            return redirect(url_for('user.view_cart'))
+
+        # Проверяем абонемент
+        if payment_type == 'subscription':
+            active_subscription = Subscription.query.filter_by(
+                user_id=current_user.id,
+                is_active=True
+            ).first()
+
+            if not active_subscription or active_subscription.end_date < date.today():
+                flash('У вас нет действующего абонемента. Выберите разовую оплату или приобретите абонемент.', 'danger')
+                return redirect(url_for('user.view_cart'))
+
+        # Создаем заказы
         orders_created = []
 
         for item_id, item_data in cart.items():
@@ -260,10 +313,9 @@ def checkout():
                     order_date=order_date,
                     meal_time=meal_time,
                     quantity=item_data.get('quantity', 1),
-                    payment_type='single',  # По умолчанию разовая оплата
+                    payment_type=payment_type,
                     payment_status='pending',
-                    special_requests=special_requests,
-                    total_price=menu_item.price * item_data.get('quantity', 1)
+                    special_requests=special_requests
                 )
                 db.session.add(order)
                 orders_created.append(order)
@@ -388,6 +440,35 @@ def my_orders():
     return render_template('user/orders.html', orders=user_orders)
 
 
+@user_bp.route('/api/check-subscription')
+@login_required
+def check_subscription():
+    """API для проверки наличия действующего абонемента"""
+    if current_user.role != 'student':
+        return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
+
+    from modules.core.models import Subscription
+
+    # Ищем активный абонемент
+    active_subscription = Subscription.query.filter_by(
+        user_id=current_user.id,
+        is_active=True
+    ).first()
+
+    has_subscription = False
+    if active_subscription and active_subscription.end_date >= date.today():
+        has_subscription = True
+
+    return jsonify({
+        'success': True,
+        'has_subscription': has_subscription,
+        'subscription': {
+            'type': active_subscription.subscription_type if active_subscription else None,
+            'end_date': active_subscription.end_date.strftime('%d.%m.%Y') if active_subscription else None
+        }
+    })
+
+
 @user_bp.route('/order/<int:order_id>/pay', methods=['POST'])
 @login_required
 def pay_for_order(order_id):
@@ -469,7 +550,6 @@ def mark_order_received(order_id):
         return redirect(url_for('index'))
 
     from modules.core.models import Order
-    from datetime import datetime
 
     order = Order.query.get_or_404(order_id)
 
@@ -485,7 +565,7 @@ def mark_order_received(order_id):
         flash('Заказ уже получен', 'info')
         return redirect(url_for('user.my_orders'))
 
-    if order.order_date != datetime.today().date():
+    if order.order_date != date.today():
         flash('Можно отмечать только сегодняшние заказы', 'warning')
         return redirect(url_for('user.my_orders'))
 
@@ -496,7 +576,6 @@ def mark_order_received(order_id):
     return redirect(url_for('user.my_orders'))
 
 
-# УДАЛЕНА ПЕРВАЯ ВЕРСИЯ ФУНКЦИИ profile() - ОСТАВЛЕНА ТОЛЬКО ЭТА ОДНА
 @user_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
