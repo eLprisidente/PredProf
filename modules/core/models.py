@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from flask_login import UserMixin
 from modules.core.database import db
 
@@ -39,6 +39,7 @@ class MenuItem(db.Model):
     available = db.Column(db.Boolean, default=True)
     image_url = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_deleted = db.Column(db.Boolean, default=False)  # Флаг мягкого удаления
 
     def __repr__(self):
         return f'<MenuItem {self.name} ({self.category})>'
@@ -71,16 +72,25 @@ class Order(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=False)
+    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=True)
     subscription_id = db.Column(db.Integer, db.ForeignKey('subscriptions.id'), nullable=True)
-    order_date = db.Column(db.Date, default=datetime.utcnow().date, nullable=False)
+    order_date = db.Column(db.Date, default=date.today, nullable=False)
     meal_time = db.Column(db.String(20), nullable=False)  # 'breakfast', 'lunch'
     quantity = db.Column(db.Integer, default=1)
-    status = db.Column(db.String(20), default='ordered')  # 'ordered', 'preparing', 'ready', 'received', 'cancelled'
-    payment_type = db.Column(db.String(20))  # 'single', 'subscription'
+
+    # Статус заказа (процесс выполнения)
+    status = db.Column(db.String(20), default='pending')  # 'pending', 'preparing', 'ready', 'received', 'cancelled'
+
+    # Статус оплаты
+    payment_type = db.Column(db.String(20), default='single')  # 'single', 'subscription'
     payment_status = db.Column(db.String(20), default='pending')  # 'pending', 'paid', 'failed', 'refunded'
+    refunded = db.Column(db.Boolean, default=False)  # Новое поле: возвращены ли средства
+    refund_amount = db.Column(db.Float, default=0.0)  # Новое поле: сумма возврата
+    refund_date = db.Column(db.DateTime, nullable=True)  # Новое поле: дата возврата
+
     special_requests = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Связи
     user = db.relationship('User', backref='orders')
@@ -92,7 +102,32 @@ class Order(db.Model):
 
     @property
     def total_price(self):
-        return self.menu_item.price * self.quantity
+        if self.menu_item and self.quantity:
+            return self.menu_item.price * self.quantity
+        return 0
+
+    @property
+    def status_display(self):
+        """Человекочитаемый статус"""
+        status_map = {
+            'pending': 'Ожидает подтверждения',
+            'preparing': 'В работе',
+            'ready': 'Готов к выдаче',
+            'received': 'Получен',
+            'cancelled': 'Отменен'
+        }
+        return status_map.get(self.status, self.status)
+
+    @property
+    def payment_status_display(self):
+        """Человекочитаемый статус оплаты"""
+        status_map = {
+            'pending': 'Ожидает оплаты',
+            'paid': 'Оплачено',
+            'failed': 'Ошибка оплаты',
+            'refunded': 'Возврат средств'
+        }
+        return status_map.get(self.payment_status, self.payment_status)
 
 
 class Feedback(db.Model):
@@ -135,17 +170,22 @@ class SupplyRequest(db.Model):
         return f'<SupplyRequest {self.id} for {self.product_name}>'
 
 
-class Inventory(db.Model):
-    """Модель инвентаря"""
-    __tablename__ = 'inventory'
+class Transaction(db.Model):
+    """Модель транзакций (история операций с балансом)"""
+    __tablename__ = 'transactions'
 
     id = db.Column(db.Integer, primary_key=True)
-    product_name = db.Column(db.String(100), nullable=False, unique=True)
-    current_quantity = db.Column(db.Float, default=0)
-    min_quantity = db.Column(db.Float, default=10)  # Минимальный запас для заказа
-    unit = db.Column(db.String(20))
-    category = db.Column(db.String(50))  # 'vegetables', 'meat', 'dairy', etc.
-    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=True)
+    amount = db.Column(db.Float, nullable=False)
+    transaction_type = db.Column(db.String(20), nullable=False)  # 'deposit', 'payment', 'refund'
+    status = db.Column(db.String(20), default='pending')  # 'pending', 'completed', 'failed'
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Связи
+    user = db.relationship('User', backref='transactions')
+    order = db.relationship('Order', backref='transactions')
 
     def __repr__(self):
-        return f'<Inventory {self.product_name}: {self.current_quantity} {self.unit}>'
+        return f'<Transaction {self.id}: {self.transaction_type} {self.amount}>'

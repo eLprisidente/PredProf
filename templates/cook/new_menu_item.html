@@ -1,49 +1,95 @@
 {% extends "base.html" %}
+
 {% block title %}Новое блюдо{% endblock %}
+
 {% block content %}
-<h1>Добавить новое блюдо</h1>
-<form method="POST">
-    {{ form.hidden_tag() }}
-    
-    <div style="margin-bottom: 15px;">
-        {{ form.name.label }}
-        {{ form.name(class="form-control", placeholder="Название блюда") }}
-        {% if form.name.errors %}
-            <div style="color: red;">{{ form.name.errors[0] }}</div>
-        {% endif %}
-    </div>
-    
-    <div style="margin-bottom: 15px;">
-        {{ form.description.label }}
-        {{ form.description(class="form-control", rows="3", placeholder="Описание блюда...") }}
-    </div>
-    
-    <div style="margin-bottom: 15px;">
-        {{ form.price.label }}
-        {{ form.price(class="form-control") }}
-    </div>
-    
-    <div style="margin-bottom: 15px;">
-        {{ form.category.label }}
-        {{ form.category(class="form-control") }}
-    </div>
-    
-    <div style="margin-bottom: 15px;">
-        {{ form.meal_type.label }}
-        {{ form.meal_type(class="form-control") }}
-    </div>
-    
-    <div style="margin-bottom: 15px;">
-        {{ form.allergens.label }}
-        {{ form.allergens(class="form-control", rows="2", placeholder="Глютен, лактоза, орехи...") }}
-    </div>
-    
-    <div style="margin-bottom: 20px;">
-        {{ form.available.label }}
-        {{ form.available() }}
-    </div>
-    
-    {{ form.submit(class="btn btn-primary") }}
-    <a href="{{ url_for('cook.manage_menu') }}" class="btn btn-secondary">Отмена</a>
-</form>
+<div class="dashboard-header" style="margin-bottom: 30px;">
+    <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+        Добавить новое блюдо
+    </h1>
+</div>
+
+<div class="dashboard-card">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                Название блюда
+            </label>
+            {{ form.name(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;", placeholder="Куриный суп, гречневая каша...") }}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                Описание
+            </label>
+            {{ form.description(class="form-control", rows="3", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;", placeholder="Вкусное и полезное блюдо...") }}
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                Изображение блюда (необязательно)
+            </label>
+            {{ form.image(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
+            <small style="color: #7f8c8d; font-size: 0.85rem; display: block; margin-top: 5px;">
+                Поддерживаемые форматы: JPG, PNG, GIF, WebP
+            </small>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    Цена
+                </label>
+                <div style="display: flex; align-items: center;">
+                    {{ form.price(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px 0 0 6px;") }}
+                    <span style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-left: none; border-radius: 0 6px 6px 0;">₽</span>
+                </div>
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    Категория
+                </label>
+                {{ form.category(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    Тип питания
+                </label>
+                {{ form.meal_type(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;") }}
+            </div>
+
+            <div>
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    Доступность
+                </label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    {{ form.available(style="width: 20px; height: 20px;", checked=True) }}
+                    <span>Доступно для заказа</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                Аллергены (необязательно)
+            </label>
+            {{ form.allergens(class="form-control", rows="2", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;", placeholder="Глютен, лактоза, орехи...") }}
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn" style="background: #27ae60; padding: 12px 24px;">
+                <i class="bi bi-plus-circle"></i> Добавить блюдо
+            </button>
+            <a href="{{ url_for('cook.manage_menu') }}" class="btn" style="background: #7f8c8d; padding: 12px 24px;">
+                <i class="bi bi-x-circle"></i> Отмена
+            </a>
+        </div>
+    </form>
+</div>
 {% endblock %}

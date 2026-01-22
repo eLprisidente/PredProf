@@ -72,3 +72,133 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Обработка кнопок переключения доступности
+document.querySelectorAll('.toggle-availability-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const itemId = this.getAttribute('data-item-id');
+        const button = this;
+        const badge = document.getElementById('availability-' + itemId);
+
+        // Показываем индикатор загрузки
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Загрузка...';
+        button.disabled = true;
+
+        // Отправляем POST запрос на сервер
+        fetch(`/cook/menu/${itemId}/toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `item_id=${itemId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем бейдж доступности
+                if (data.available) {
+                    badge.className = 'availability-badge available';
+                    badge.innerHTML = '<i class="bi bi-check-circle"></i> Доступно';
+
+                    // Обновляем кнопку
+                    button.innerHTML = '<i class="bi bi-power"></i> Отключить';
+                    button.style.background = '#f39c12';
+                } else {
+                    badge.className = 'availability-badge unavailable';
+                    badge.innerHTML = '<i class="bi bi-x-circle"></i> Недоступно';
+
+                    // Обновляем кнопку
+                    button.innerHTML = '<i class="bi bi-power"></i> Включить';
+                    button.style.background = '#27ae60';
+                }
+
+                // Показываем уведомление
+                showToast('success', data.message);
+            } else {
+                showToast('error', data.message);
+                button.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', 'Ошибка сервера');
+            button.innerHTML = originalText;
+        })
+        .finally(() => {
+            button.disabled = false;
+        });
+    });
+});
+
+// Функция для показа уведомлений
+function showToast(type, message) {
+    // Создаем контейнер для тостов, если его нет
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; align-items: flex-end;';
+        document.body.appendChild(toastContainer);
+    }
+
+    // Создаем тост
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        background: ${type === 'success' ? '#27ae60' : '#e74c3c'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        margin-top: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease-out;
+        max-width: 300px;
+    `;
+
+    toast.innerHTML = `
+        <i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}"></i>
+        <span>${message}</span>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Удаляем тост через 3 секунды
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
+
+    // Добавляем стили для анимации если их нет
+    if (!document.getElementById('toast-animations')) {
+        const style = document.createElement('style');
+        style.id = 'toast-animations';
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}

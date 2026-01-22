@@ -1,79 +1,916 @@
 {% extends "base.html" %}
 
-{% block title %}Управление заказами{% endblock %}
+{% block title %}Заказы на сегодня - Повар{% endblock %}
 
 {% block content %}
-<h1>Управление заказами</h1>
+<div class="dashboard-header" style="margin-bottom: 30px;">
+    <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+        Заказы на сегодня
+    </h1>
+    <p style="color: #7f8c8d; font-size: 1rem;">
+        <i class="bi bi-calendar"></i> {{ now.strftime('%d.%m.%Y') }} |
+        <i class="bi bi-clock"></i> {{ now.strftime('%H:%M') }}
+    </p>
+</div>
 
-<h2>Завтраки ({{ breakfast_orders|length }})</h2>
-{% if breakfast_orders %}
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Ученик</th>
-            <th>Блюдо</th>
-            <th>Количество</th>
-            <th>Статус</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in breakfast_orders %}
-        <tr>
-            <td>#{{ order.id }}</td>
-            <td>{{ order.user.full_name }}</td>
-            <td>{{ order.menu_item.name }}</td>
-            <td>{{ order.quantity }}</td>
-            <td>{{ order.status|capitalize }}</td>
-            <td>
-                {% if order.status != 'received' %}
-                <form action="{{ url_for('cook.complete_order', order_id=order.id) }}" method="POST" style="display: inline;">
-                    <button type="submit" class="btn">Выдано</button>
-                </form>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>Нет заказов на завтрак.</p>
+<!-- Активные заказы (готовятся и готовы) -->
+{% if preparing_count > 0 or ready_count > 0 %}
+<div class="dashboard-card" style="margin-bottom: 30px; border-left: 5px solid #3498db;">
+    <h2 style="color: #3498db; display: flex; justify-content: space-between; align-items: center;">
+        <span><i class="bi bi-lightning-charge"></i> Активные заказы</span>
+        <span style="font-size: 0.9rem; color: #7f8c8d;">
+            {{ preparing_count + ready_count }} активных
+        </span>
+    </h2>
+
+    <!-- Вкладки для активных заказов -->
+    <div style="margin-bottom: 20px;">
+        <div style="display: flex; gap: 10px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+            <button class="active-tab-btn" data-tab="preparing" style="
+                padding: 8px 20px;
+                border: none;
+                background: #f39c12;
+                color: white;
+                border-radius: 20px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <i class="bi bi-clock-history"></i> Готовятся ({{ preparing_count }})
+            </button>
+            <button class="active-tab-btn" data-tab="ready" style="
+                padding: 8px 20px;
+                border: none;
+                background: #17a2b8;
+                color: white;
+                border-radius: 20px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <i class="bi bi-check-circle"></i> Готовы к выдаче ({{ ready_count }})
+            </button>
+        </div>
+    </div>
+
+    <!-- Содержимое вкладки "Готовятся" -->
+    <div id="preparing-tab" class="active-tab-content" style="display: block;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+            {% for order in breakfast_orders if order.status in ['pending', 'preparing'] %}
+            <div class="active-order-card preparing" style="background: white; border-radius: 10px; padding: 15px; border: 2px solid #eaeaea; border-left: 4px solid #f39c12;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div>
+                        <div style="font-weight: 700; color: #2c3e50; font-size: 1rem;">#{{ order.id }}</div>
+                        <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 3px;">
+                            <i class="bi bi-person"></i> {{ order.user.full_name }}
+                            {% if order.user.class_group %}
+                            <span style="margin-left: 10px;">
+                                <i class="bi bi-people"></i> {{ order.user.class_group }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span style="font-weight: 600; color: #f39c12;">
+                        <i class="bi bi-{{ 'sun' if order.meal_time == 'breakfast' else 'moon' }}"></i>
+                        {{ 'Завтрак' if order.meal_time == 'breakfast' else 'Обед' }}
+                    </span>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 5px;">
+                        {{ order.menu_item.name if order.menu_item else 'Удаленное блюдо' }}
+                    </div>
+                    <div style="color: #7f8c8d; font-size: 0.85rem;">
+                        Кол-во: {{ order.quantity }} × {{ order.menu_item.price if order.menu_item else 0 }} ₽ =
+                        <strong>{{ order.total_price }} ₽</strong>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <div style="color: #7f8c8d; font-size: 0.8rem;">
+                        <i class="bi bi-clock"></i> {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button"
+                                class="btn mark-ready-btn"
+                                style="background: #f39c12; padding: 8px 15px; font-size: 0.85rem; border-radius: 6px;"
+                                data-order-id="{{ order.id }}">
+                            <i class="bi bi-check-circle"></i> Готово
+                        </button>
+
+                        <button type="button"
+                                class="btn cancel-order-btn"
+                                style="background: #e74c3c; padding: 8px 15px; font-size: 0.85rem; border-radius: 6px;"
+                                data-order-id="{{ order.id }}">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% for order in lunch_orders if order.status in ['pending', 'preparing'] %}
+            <div class="active-order-card preparing" style="background: white; border-radius: 10px; padding: 15px; border: 2px solid #eaeaea; border-left: 4px solid #f39c12;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div>
+                        <div style="font-weight: 700; color: #2c3e50; font-size: 1rem;">#{{ order.id }}</div>
+                        <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 3px;">
+                            <i class="bi bi-person"></i> {{ order.user.full_name }}
+                            {% if order.user.class_group %}
+                            <span style="margin-left: 10px;">
+                                <i class="bi bi-people"></i> {{ order.user.class_group }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span style="font-weight: 600; color: #f39c12;">
+                        <i class="bi bi-{{ 'sun' if order.meal_time == 'breakfast' else 'moon' }}"></i>
+                        {{ 'Завтрак' if order.meal_time == 'breakfast' else 'Обед' }}
+                    </span>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 5px;">
+                        {{ order.menu_item.name if order.menu_item else 'Удаленное блюдо' }}
+                    </div>
+                    <div style="color: #7f8c8d; font-size: 0.85rem;">
+                        Кол-во: {{ order.quantity }} × {{ order.menu_item.price if order.menu_item else 0 }} ₽ =
+                        <strong>{{ order.total_price }} ₽</strong>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <div style="color: #7f8c8d; font-size: 0.8rem;">
+                        <i class="bi bi-clock"></i> {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button"
+                                class="btn mark-ready-btn"
+                                style="background: #f39c12; padding: 8px 15px; font-size: 0.85rem; border-radius: 6px;"
+                                data-order-id="{{ order.id }}">
+                            <i class="bi bi-check-circle"></i> Готово
+                        </button>
+
+                        <button type="button"
+                                class="btn cancel-order-btn"
+                                style="background: #e74c3c; padding: 8px 15px; font-size: 0.85rem; border-radius: 6px;"
+                                data-order-id="{{ order.id }}">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Содержимое вкладки "Готовы" -->
+    <div id="ready-tab" class="active-tab-content" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+            {% for order in breakfast_orders if order.status == 'ready' %}
+            <div class="active-order-card ready" style="background: white; border-radius: 10px; padding: 15px; border: 2px solid #eaeaea; border-left: 4px solid #17a2b8;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div>
+                        <div style="font-weight: 700; color: #2c3e50; font-size: 1rem;">#{{ order.id }}</div>
+                        <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 3px;">
+                            <i class="bi bi-person"></i> {{ order.user.full_name }}
+                            {% if order.user.class_group %}
+                            <span style="margin-left: 10px;">
+                                <i class="bi bi-people"></i> {{ order.user.class_group }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span style="font-weight: 600; color: #17a2b8;">
+                        <i class="bi bi-{{ 'sun' if order.meal_time == 'breakfast' else 'moon' }}"></i>
+                        {{ 'Завтрак' if order.meal_time == 'breakfast' else 'Обед' }}
+                    </span>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 5px;">
+                        {{ order.menu_item.name if order.menu_item else 'Удаленное блюдо' }}
+                    </div>
+                    <div style="color: #7f8c8d; font-size: 0.85rem;">
+                        Кол-во: {{ order.quantity }} × {{ order.menu_item.price if order.menu_item else 0 }} ₽ =
+                        <strong>{{ order.total_price }} ₽</strong>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <div style="color: #7f8c8d; font-size: 0.8rem;">
+                        <i class="bi bi-clock"></i> {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button"
+                                class="btn complete-order-btn"
+                                style="background: #17a2b8; padding: 8px 15px; font-size: 0.85rem; border-radius: 6px;"
+                                data-order-id="{{ order.id }}">
+                            <i class="bi bi-truck"></i> Выдать
+                        </button>
+
+                        <button type="button"
+                                class="btn cancel-order-btn"
+                                style="background: #e74c3c; padding: 8px 15px; font-size: 0.85rem; border-radius: 6px;"
+                                data-order-id="{{ order.id }}">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% for order in lunch_orders if order.status == 'ready' %}
+            <div class="active-order-card ready" style="background: white; border-radius: 10px; padding: 15px; border: 2px solid #eaeaea; border-left: 4px solid #17a2b8;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                    <div>
+                        <div style="font-weight: 700; color: #2c3e50; font-size: 1rem;">#{{ order.id }}</div>
+                        <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 3px;">
+                            <i class="bi bi-person"></i> {{ order.user.full_name }}
+                            {% if order.user.class_group %}
+                            <span style="margin-left: 10px;">
+                                <i class="bi bi-people"></i> {{ order.user.class_group }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span style="font-weight: 600; color: #17a2b8;">
+                        <i class="bi bi-{{ 'sun' if order.meal_time == 'breakfast' else 'moon' }}"></i>
+                        {{ 'Завтрак' if order.meal_time == 'breakfast' else 'Обед' }}
+                    </span>
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <div style="font-weight: 600; color: #2c3e50; font-size: 0.95rem; margin-bottom: 5px;">
+                        {{ order.menu_item.name if order.menu_item else 'Удаленное блюдо' }}
+                    </div>
+                    <div style="color: #7f8c8d; font-size: 0.85rem;">
+                        Кол-во: {{ order.quantity }} × {{ order.menu_item.price if order.menu_item else 0 }} ₽ =
+                        <strong>{{ order.total_price }} ₽</strong>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <div style="color: #7f8c8d; font-size: 0.8rem;">
+                        <i class="bi bi-clock"></i> {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}
+                    </div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button"
+                                class="btn complete-order-btn"
+                                style="background: #17a2b8; padding: 8px 15px; font-size: 0.85rem; border-radius: 6px;"
+                                data-order-id="{{ order.id }}">
+                            <i class="bi bi-truck"></i> Выдать
+                        </button>
+
+                        <button type="button"
+                                class="btn cancel-order-btn"
+                                style="background: #e74c3c; padding: 8px 15px; font-size: 0.85rem; border-radius: 6px;"
+                                data-order-id="{{ order.id }}">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
 {% endif %}
 
-<h2 style="margin-top: 40px;">Обеды ({{ lunch_orders|length }})</h2>
-{% if lunch_orders %}
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Ученик</th>
-            <th>Блюдо</th>
-            <th>Количество</th>
-            <th>Статус</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in lunch_orders %}
-        <tr>
-            <td>#{{ order.id }}</td>
-            <td>{{ order.user.full_name }}</td>
-            <td>{{ order.menu_item.name }}</td>
-            <td>{{ order.quantity }}</td>
-            <td>{{ order.status|capitalize }}</td>
-            <td>
-                {% if order.status != 'received' %}
-                <form action="{{ url_for('cook.complete_order', order_id=order.id) }}" method="POST" style="display: inline;">
-                    <button type="submit" class="btn">Выдано</button>
-                </form>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>Нет заказов на обед.</p>
-{% endif %}
+<!-- Объединенная таблица всех заказов -->
+<div class="dashboard-card">
+    <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <span><i class="bi bi-receipt"></i> Все заказы сегодня</span>
+        <span style="font-size: 0.9rem; color: #7f8c8d;">
+            Всего: {{ total_orders }} | Выдано: {{ completed_count }} | Отменено: {{ cancelled_count }}
+        </span>
+    </h2>
+
+    <!-- Вкладки для фильтрации -->
+    <div style="margin-bottom: 20px;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+            <button class="filter-tab-btn active" data-filter="all" style="
+                padding: 8px 20px;
+                border: none;
+                background: #3498db;
+                color: white;
+                border-radius: 20px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <i class="bi bi-list"></i> Все заказы
+            </button>
+            <button class="filter-tab-btn" data-filter="breakfast" style="
+                padding: 8px 20px;
+                border: none;
+                background: #e67e22;
+                color: white;
+                border-radius: 20px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <i class="bi bi-sun"></i> Только завтраки
+            </button>
+            <button class="filter-tab-btn" data-filter="lunch" style="
+                padding: 8px 20px;
+                border: none;
+                background: #8e44ad;
+                color: white;
+                border-radius: 20px;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <i class="bi bi-moon"></i> Только обеды
+            </button>
+        </div>
+    </div>
+
+    <!-- Таблица всех заказов -->
+    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+        <table class="admin-table" style="width: 100%; border-collapse: collapse;">
+            <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">
+                <tr>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #eaeaea;">ID</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #eaeaea;">Ученик</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #eaeaea;">Время</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #eaeaea;">Блюдо</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #eaeaea;">Сумма</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #eaeaea;">Статус</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #eaeaea;">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Завтраки -->
+                {% for order in breakfast_orders %}
+                <tr class="order-row" data-meal-time="breakfast" data-order-id="{{ order.id }}"
+                    style="border-bottom: 1px solid #eee; {% if order.status == 'received' %}background: #f8fff9;{% elif order.status == 'cancelled' %}background: #fff8f8;{% endif %}">
+                    <td style="padding: 12px; font-weight: bold; color: #2c3e50;">#{{ order.id }}</td>
+                    <td style="padding: 12px;">
+                        <div style="font-weight: 600; color: #2c3e50;">{{ order.user.full_name }}</div>
+                        <div style="color: #7f8c8d; font-size: 0.85rem;">{{ order.user.class_group }}</div>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div style="display: flex; align-items: center; gap: 5px; color: #e67e22; font-weight: 600;">
+                            <i class="bi bi-sun"></i> Завтрак
+                        </div>
+                        <div style="color: #7f8c8d; font-size: 0.85rem;">
+                            {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}
+                        </div>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div style="font-weight: 600; color: #2c3e50;">
+                            {{ order.menu_item.name if order.menu_item else 'Удаленное блюдо' }}
+                        </div>
+                        <div style="color: #7f8c8d; font-size: 0.85rem;">
+                            Кол-во: {{ order.quantity }}
+                        </div>
+                    </td>
+                    <td style="padding: 12px; font-weight: 600; color: #27ae60;">
+                        {{ order.total_price }} ₽
+                    </td>
+                    <td style="padding: 12px;">
+                        <span id="status-badge-{{ order.id }}" class="order-status-badge status-{{ order.status }}">
+                            {{ order.status_display }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div class="order-actions" id="actions-{{ order.id }}" style="display: flex; gap: 5px;">
+                            {% if order.status in ['pending', 'preparing'] %}
+                            <button type="button"
+                                    class="btn mark-ready-btn"
+                                    style="background: #f39c12; padding: 6px 12px; font-size: 0.85rem;"
+                                    data-order-id="{{ order.id }}">
+                                <i class="bi bi-check-circle"></i> Готово
+                            </button>
+                            {% elif order.status == 'ready' %}
+                            <button type="button"
+                                    class="btn complete-order-btn"
+                                    style="background: #27ae60; padding: 6px 12px; font-size: 0.85rem;"
+                                    data-order-id="{{ order.id }}">
+                                <i class="bi bi-truck"></i> Выдать
+                            </button>
+                            {% endif %}
+
+                            {% if order.status not in ['received', 'cancelled'] %}
+                            <button type="button"
+                                    class="btn cancel-order-btn"
+                                    style="background: #e74c3c; padding: 6px 12px; font-size: 0.85rem;"
+                                    data-order-id="{{ order.id }}">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+
+                <!-- Обеды -->
+                {% for order in lunch_orders %}
+                <tr class="order-row" data-meal-time="lunch" data-order-id="{{ order.id }}"
+                    style="border-bottom: 1px solid #eee; {% if order.status == 'received' %}background: #f8fff9;{% elif order.status == 'cancelled' %}background: #fff8f8;{% endif %}">
+                    <td style="padding: 12px; font-weight: bold; color: #2c3e50;">#{{ order.id }}</td>
+                    <td style="padding: 12px;">
+                        <div style="font-weight: 600; color: #2c3e50;">{{ order.user.full_name }}</div>
+                        <div style="color: #7f8c8d; font-size: 0.85rem;">{{ order.user.class_group }}</div>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div style="display: flex; align-items: center; gap: 5px; color: #8e44ad; font-weight: 600;">
+                            <i class="bi bi-moon"></i> Обед
+                        </div>
+                        <div style="color: #7f8c8d; font-size: 0.85rem;">
+                            {{ order.created_at.strftime('%H:%M') if order.created_at else '' }}
+                        </div>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div style="font-weight: 600; color: #2c3e50;">
+                            {{ order.menu_item.name if order.menu_item else 'Удаленное блюдо' }}
+                        </div>
+                        <div style="color: #7f8c8d; font-size: 0.85rem;">
+                            Кол-во: {{ order.quantity }}
+                        </div>
+                    </td>
+                    <td style="padding: 12px; font-weight: 600; color: #27ae60;">
+                        {{ order.total_price }} ₽
+                    </td>
+                    <td style="padding: 12px;">
+                        <span id="status-badge-{{ order.id }}" class="order-status-badge status-{{ order.status }}">
+                            {{ order.status_display }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">
+                        <div class="order-actions" id="actions-{{ order.id }}" style="display: flex; gap: 5px;">
+                            {% if order.status in ['pending', 'preparing'] %}
+                            <button type="button"
+                                    class="btn mark-ready-btn"
+                                    style="background: #f39c12; padding: 6px 12px; font-size: 0.85rem;"
+                                    data-order-id="{{ order.id }}">
+                                <i class="bi bi-check-circle"></i> Готово
+                            </button>
+                            {% elif order.status == 'ready' %}
+                            <button type="button"
+                                    class="btn complete-order-btn"
+                                    style="background: #27ae60; padding: 6px 12px; font-size: 0.85rem;"
+                                    data-order-id="{{ order.id }}">
+                                <i class="bi bi-truck"></i> Выдать
+                            </button>
+                            {% endif %}
+
+                            {% if order.status not in ['received', 'cancelled'] %}
+                            <button type="button"
+                                    class="btn cancel-order-btn"
+                                    style="background: #e74c3c; padding: 6px 12px; font-size: 0.85rem;"
+                                    data-order-id="{{ order.id }}">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not breakfast_orders and not lunch_orders %}
+    <div style="text-align: center; padding: 40px 20px; color: #7f8c8d;">
+        <i class="bi bi-receipt" style="font-size: 3rem;"></i>
+        <h3 style="margin-top: 15px;">Нет заказов сегодня</h3>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Стили для карточек активных заказов */
+.active-order-card {
+    transition: all 0.3s;
+}
+
+.active-order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+/* Стили для вкладок */
+.active-tab-content {
+    transition: all 0.3s;
+}
+
+.filter-tab-btn {
+    transition: all 0.3s;
+}
+
+.filter-tab-btn:hover, .filter-tab-btn.active {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Стили для таблицы */
+.table-responsive {
+    scrollbar-width: thin;
+    scrollbar-color: #bdc3c7 transparent;
+}
+
+.table-responsive::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #bdc3c7;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #95a5a6;
+}
+
+/* Стили для строк таблицы */
+.order-row:hover {
+    background: #f8f9fa !important;
+}
+
+.order-row.received {
+    opacity: 0.7;
+}
+
+.order-row.cancelled {
+    opacity: 0.5;
+}
+
+/* Статусы заказов */
+.order-status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 120px;
+    text-align: center;
+}
+
+.status-pending, .status-preparing {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.status-ready {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.status-received {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-cancelled {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Переключение между вкладками активных заказов
+    document.querySelectorAll('.active-tab-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+
+            // Обновляем активные кнопки
+            document.querySelectorAll('.active-tab-btn').forEach(btn => {
+                btn.style.opacity = '0.7';
+            });
+            this.style.opacity = '1';
+
+            // Показываем соответствующий контент
+            document.querySelectorAll('.active-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(tabName + '-tab').style.display = 'block';
+        });
+    });
+
+    // Фильтрация по типу заказа
+    document.querySelectorAll('.filter-tab-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const filter = this.getAttribute('data-filter');
+
+            // Обновляем активные кнопки
+            document.querySelectorAll('.filter-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.opacity = '0.7';
+            });
+            this.classList.add('active');
+            this.style.opacity = '1';
+
+            // Фильтруем строки таблицы
+            document.querySelectorAll('.order-row').forEach(row => {
+                if (filter === 'all') {
+                    row.style.display = '';
+                } else if (filter === 'breakfast') {
+                    row.style.display = row.getAttribute('data-meal-time') === 'breakfast' ? '' : 'none';
+                } else if (filter === 'lunch') {
+                    row.style.display = row.getAttribute('data-meal-time') === 'lunch' ? '' : 'none';
+                }
+            });
+        });
+    });
+
+    // Обработчики кнопок для карточек активных заказов
+    document.querySelectorAll('.mark-ready-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            markOrderReady(orderId, this);
+        });
+    });
+
+    document.querySelectorAll('.complete-order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            completeOrder(orderId, this);
+        });
+    });
+
+    document.querySelectorAll('.cancel-order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            cancelOrder(orderId, this);
+        });
+    });
+
+    // Функция для пометки заказа готовым
+    function markOrderReady(orderId, button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Обработка...';
+        button.disabled = true;
+
+        fetch(`/cook/order/${orderId}/mark-ready`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateOrderUI(orderId, data.new_status, data.status_display);
+                showToast('success', data.message);
+                updateNavbarCounts();
+
+                // Перезагружаем страницу для обновления счетчиков
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showToast('error', data.message);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', 'Ошибка сервера');
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
+
+    // Функция для отметки заказа выданным
+    function completeOrder(orderId, button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Обработка...';
+        button.disabled = true;
+
+        fetch(`/cook/order/${orderId}/complete`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateOrderUI(orderId, data.new_status, data.status_display);
+                showToast('success', data.message);
+                updateNavbarCounts();
+
+                // Перезагружаем страницу для обновления счетчиков
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showToast('error', data.message);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', 'Ошибка сервера');
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
+
+    // Функция отмены заказа
+    function cancelOrder(orderId, button) {
+        if (!confirm('Вы уверены, что хотите отменить этот заказ?')) {
+            return;
+        }
+
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Обработка...';
+        button.disabled = true;
+
+        fetch(`/cook/order/${orderId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateOrderUI(orderId, data.new_status, data.status_display);
+                showToast('success', data.message);
+                updateNavbarCounts();
+
+                // Перезагружаем страницу для обновления счетчиков
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showToast('error', data.message);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', 'Ошибка сервера');
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
+
+    // Обновление UI после изменения статуса
+    function updateOrderUI(orderId, newStatus, statusDisplay) {
+        // Обновляем бейдж статуса в таблице
+        const statusBadge = document.getElementById(`status-badge-${orderId}`);
+        if (statusBadge) {
+            statusBadge.className = `order-status-badge status-${newStatus}`;
+            statusBadge.textContent = statusDisplay;
+        }
+
+        // Обновляем кнопки действий в таблице
+        const actionsDiv = document.getElementById(`actions-${orderId}`);
+        if (actionsDiv) {
+            if (newStatus === 'ready') {
+                actionsDiv.innerHTML = `
+                    <button type="button"
+                            class="btn complete-order-btn"
+                            style="background: #27ae60; padding: 6px 12px; font-size: 0.85rem;"
+                            data-order-id="${orderId}">
+                        <i class="bi bi-truck"></i> Выдать
+                    </button>
+                    <button type="button"
+                            class="btn cancel-order-btn"
+                            style="background: #e74c3c; padding: 6px 12px; font-size: 0.85rem;"
+                            data-order-id="${orderId}">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                `;
+
+                // Добавляем обработчики для новых кнопок
+                const completeBtn = actionsDiv.querySelector('.complete-order-btn');
+                if (completeBtn) {
+                    completeBtn.addEventListener('click', function() {
+                        completeOrder(orderId, this);
+                    });
+                }
+
+                const cancelBtn = actionsDiv.querySelector('.cancel-order-btn');
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', function() {
+                        cancelOrder(orderId, this);
+                    });
+                }
+            } else if (newStatus === 'received' || newStatus === 'cancelled') {
+                actionsDiv.innerHTML = '<span style="color: #7f8c8d; font-size: 0.85rem;">' +
+                    (newStatus === 'received' ? 'Заказ выдан' : 'Заказ отменен') + '</span>';
+
+                // Обновляем фон строки
+                const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
+                if (row) {
+                    row.style.background = newStatus === 'received' ? '#f8fff9' : '#fff8f8';
+                }
+            }
+        }
+    }
+
+    // Обновление счетчиков в навбаре
+    function updateNavbarCounts() {
+        fetch('/cook/api/order-counts')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const totalBadge = document.getElementById('cook-orders-badge');
+                if (totalBadge && data.counts.total !== undefined) {
+                    if (data.counts.total > 0) {
+                        totalBadge.textContent = data.counts.total;
+                        totalBadge.style.display = 'inline-block';
+                    } else {
+                        totalBadge.style.display = 'none';
+                    }
+                }
+            }
+        })
+        .catch(error => console.error('Ошибка обновления счетчиков:', error));
+    }
+
+    // Функция для показа уведомлений
+    function showToast(type, message) {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 10000;';
+            document.body.appendChild(toastContainer);
+        }
+
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: ${type === 'success' ? '#27ae60' : '#e74c3c'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+        `;
+
+        toast.innerHTML = `
+            <i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'}"></i>
+            ${message}
+        `;
+
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Добавляем стили анимаций
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
 {% endblock %}

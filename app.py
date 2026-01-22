@@ -4,7 +4,7 @@ from flask import Flask, render_template, redirect, url_for, session
 from flask_login import LoginManager, current_user
 from sqlalchemy import text
 import traceback
-from datetime import datetime
+from datetime import datetime, date
 
 app = Flask(__name__,
             template_folder='templates',
@@ -101,8 +101,132 @@ def inject_cart_count():
 
 @app.context_processor
 def inject_now():
+    """Добавить текущую дату во все шаблоны"""
+    return {'now': datetime.utcnow()}
+
+@app.context_processor
+def inject_csrf_token():
+    """Добавить CSRF токен для AJAX запросов"""
+    from flask_wtf.csrf import generate_csrf
+    return {'csrf_token': generate_csrf}
+
+@app.context_processor
+def inject_now():
+    """Добавить текущую дату во все шаблоны"""
+    return {'now': datetime.utcnow()}
+
+@app.context_processor
+def inject_today():
+    """Добавить сегодняшнюю дату во все шаблоны"""
+    return {'today': date.today()}
+
+
+@app.context_processor
+def inject_order_counts():
+    """Добавить счетчики заказов для повара"""
+    from datetime import date
+
+    if current_user.is_authenticated and current_user.role == 'cook':
+        try:
+            from modules.core.models import Order
+
+            # Заказы на сегодня
+            today_orders = Order.query.filter(
+                Order.order_date == date.today(),
+                Order.status.in_(['pending', 'preparing', 'ready'])
+            ).all()
+
+            # Счетчики
+            total_active = len(today_orders)
+
+            return {
+                'cook_total_active': total_active
+            }
+        except Exception as e:
+            print(f"Ошибка получения счетчиков для повара: {e}")
+            return {
+                'cook_total_active': 0
+            }
+
+    # Для администратора - счетчик заявок
+    elif current_user.is_authenticated and current_user.role == 'admin':
+        try:
+            from modules.core.models import SupplyRequest
+
+            pending_requests_count = SupplyRequest.query.filter_by(status='pending').count()
+
+            return {
+                'pending_requests_count': pending_requests_count
+            }
+        except Exception as e:
+            print(f"Ошибка получения счетчиков для админа: {e}")
+            return {
+                'pending_requests_count': 0
+            }
+
+    # Для повара - счетчик заявок
+    elif current_user.is_authenticated and current_user.role == 'cook':
+        try:
+            from modules.core.models import SupplyRequest
+
+            pending_requests_count = SupplyRequest.query.filter_by(status='pending').count()
+
+            return {
+                'pending_requests_count': pending_requests_count
+            }
+        except Exception as e:
+            print(f"Ошибка получения счетчиков заявок для повара: {e}")
+            return {
+                'pending_requests_count': 0
+            }
+
+    return {
+        'cook_total_active': 0,
+        'pending_requests_count': 0
+    }
+
+
+@app.context_processor
+def inject_now():
     """Добавить текущую дату и время во все шаблоны"""
     return {'now': datetime.utcnow()}
+
+
+@app.context_processor
+def inject_now():
+    """Добавить текущую дату во все шаблоны"""
+    return {'today': datetime.utcnow().date()}
+
+
+@app.context_processor
+def inject_pending_counts():
+    """Добавить счетчики ожидающих заявок и заказов"""
+    if current_user.is_authenticated:
+        if current_user.role == 'cook':
+            from modules.core.models import SupplyRequest, Order
+            from datetime import date
+
+            pending_requests_count = SupplyRequest.query.filter_by(
+                status='pending'
+            ).count()
+
+            pending_orders_count = Order.query.filter(
+                Order.order_date == date.today(),
+                Order.status != 'received'
+            ).count()
+
+            return {
+                'pending_requests_count': pending_requests_count,
+                'pending_orders_count': pending_orders_count
+            }
+        elif current_user.role == 'admin':
+            from modules.core.models import SupplyRequest
+            pending_requests_count = SupplyRequest.query.filter_by(
+                status='pending'
+            ).count()
+            return {'pending_requests_count': pending_requests_count}
+
+    return {}
 
 
 @app.context_processor
@@ -171,6 +295,65 @@ def unauthorized(e):
     return redirect(url_for('auth.login'))
 
 
+def migrate_database():
+    """Миграция для добавления новых таблиц и полей"""
+    with app.app_context():
+        from sqlalchemy import text
+
+        try:
+            with db.engine.connect() as conn:
+                # 1. Добавляем поле is_deleted в menu_items
+                result = conn.execute(text("PRAGMA table_info(menu_items)"))
+                columns = [col[1] for col in result.fetchall()]
+
+                if 'is_deleted' not in columns:
+                    print("Добавляем поле is_deleted в таблицу menu_items...")
+                    conn.execute(text("ALTER TABLE menu_items ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE"))
+
+                # 2. Добавляем поля для возврата средств в orders
+                result = conn.execute(text("PRAGMA table_info(orders)"))
+                columns = [col[1] for col in result.fetchall()]
+
+                if 'refunded' not in columns:
+                    print("Добавляем поле refunded в таблицу orders...")
+                    conn.execute(text("ALTER TABLE orders ADD COLUMN refunded BOOLEAN DEFAULT FALSE"))
+
+                if 'refund_amount' not in columns:
+                    print("Добавляем поле refund_amount в таблицу orders...")
+                    conn.execute(text("ALTER TABLE orders ADD COLUMN refund_amount FLOAT DEFAULT 0.0"))
+
+                if 'refund_date' not in columns:
+                    print("Добавляем поле refund_date в таблицу orders...")
+                    conn.execute(text("ALTER TABLE orders ADD COLUMN refund_date DATETIME"))
+
+                # 3. Проверяем существование таблицы transactions
+                tables = conn.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'")).fetchall()
+
+                if not tables:
+                    print("Создаем таблицу transactions...")
+                    conn.execute(text('''
+                        CREATE TABLE transactions (
+                            id INTEGER PRIMARY KEY,
+                            user_id INTEGER NOT NULL,
+                            order_id INTEGER,
+                            amount FLOAT NOT NULL,
+                            transaction_type VARCHAR(20) NOT NULL,
+                            status VARCHAR(20) DEFAULT 'pending',
+                            description TEXT,
+                            created_at DATETIME,
+                            FOREIGN KEY (user_id) REFERENCES users (id),
+                            FOREIGN KEY (order_id) REFERENCES orders (id)
+                        )
+                    '''))
+
+                print("Миграция базы данных завершена!")
+
+        except Exception as e:
+            print(f"Ошибка миграции: {e}")
+            traceback.print_exc()
+
+
 def init_database():
     """Инициализация базы данных"""
     with app.app_context():
@@ -217,9 +400,10 @@ def init_database():
                 except Exception as e:
                     print(f"{e}")
                     traceback.print_exc()
+        migrate_database()
 
 
 if __name__ == '__main__':
     # Инициализируем БД перед запуском
     init_database()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=8147)

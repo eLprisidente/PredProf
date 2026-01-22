@@ -1,386 +1,497 @@
+<!-- templates/user/cart.html -->
 {% extends "base.html" %}
 
 {% block title %}Корзина{% endblock %}
 
 {% block content %}
-<div class="cart-container">
-    <div class="cart-header">
-        <div>
-            <h1 style="font-size: 1.8rem; margin-bottom: 5px;">
-                <i class="bi bi-cart3"></i> Корзина
-            </h1>
-            <div class="cart-subtitle">
-                {% if cart_items %}
-                    {{ cart_items|length }} товар(а) на сумму {{ total_price }} ₽
-                {% else %}
-                    Корзина пуста
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="cart-actions">
-            <a href="{{ url_for('user.show_menu') }}" class="btn btn-outline btn-sm">
-                <i class="bi bi-arrow-left"></i> Назад
-            </a>
-
-            {% if cart_items %}
-            <form action="{{ url_for('user.clear_cart') }}" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-danger btn-sm">
-                    <i class="bi bi-trash"></i> Очистить
-                </button>
-            </form>
-            {% endif %}
-        </div>
+<div class="cart-header">
+    <div>
+        <h1>Корзина</h1>
+        <p class="cart-subtitle">Товаров: {{ total_items }} • Общая сумма: {{ total_price }} ₽</p>
     </div>
-
-    {% if cart_items %}
-    <div class="cart-content">
-        <!-- Товары в корзине -->
-        <div class="cart-items-section">
-            <h3 style="font-size: 1.2rem; margin-bottom: 15px; color: #2c3e50;">
-                <i class="bi bi-list"></i> Товары в корзине
-            </h3>
-
-            <div class="cart-items-list">
-                {% for item in cart_items %}
-                <div class="cart-item-compact">
-                    <div class="cart-item-left">
-                        <div class="cart-item-name">{{ item.menu_item.name }}</div>
-                        <div class="cart-item-desc">{{ item.menu_item.description|truncate(60) }}</div>
-                        <div class="cart-item-price-single">{{ item.menu_item.price }} ₽/шт</div>
-                    </div>
-
-                    <div class="cart-item-right">
-                        <div class="cart-item-controls-compact">
-                            <form action="{{ url_for('user.update_cart_item', item_id=item.id) }}" method="POST" class="quantity-form">
-                                <input type="hidden" name="action" value="decrease">
-                                <button type="submit" class="quantity-btn-small" {% if item.quantity <= 1 %}disabled{% endif %}>
-                                    <i class="bi bi-dash"></i>
-                                </button>
-                            </form>
-
-                            <span class="quantity-value-small">{{ item.quantity }}</span>
-
-                            <form action="{{ url_for('user.update_cart_item', item_id=item.id) }}" method="POST" class="quantity-form">
-                                <input type="hidden" name="action" value="increase">
-                                <button type="submit" class="quantity-btn-small">
-                                    <i class="bi bi-plus"></i>
-                                </button>
-                            </form>
-                        </div>
-
-                        <div class="cart-item-total-compact">
-                            <strong>{{ item.menu_item.price * item.quantity }} ₽</strong>
-                        </div>
-
-                        <form action="{{ url_for('user.remove_from_cart', item_id=item.id) }}" method="POST">
-                            <button type="submit" class="btn btn-sm btn-danger" style="padding: 4px 8px;">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Итого и оформление -->
-        <div class="cart-summary-compact">
-            <div class="summary-header">
-                <h3 style="font-size: 1.2rem; margin: 0;">
-                    <i class="bi bi-receipt"></i> Оформление заказа
-                </h3>
-            </div>
-
-            <div class="summary-total-compact">
-                <div class="total-row">
-                    <span>Итого:</span>
-                    <span class="total-price">{{ total_price }} ₽</span>
-                </div>
-            </div>
-
-            <form action="{{ url_for('user.checkout') }}" method="POST" class="checkout-form-compact">
-                <div class="form-group-small">
-                    <label class="form-label-small"><i class="bi bi-clock"></i> Время приема пищи</label>
-                    <select name="meal_time" class="form-control-small" required>
-                        <option value="breakfast">Завтрак</option>
-                        <option value="lunch">Обед</option>
-                    </select>
-                </div>
-
-                <div class="form-group-small">
-                    <label class="form-label-small"><i class="bi bi-calendar"></i> Дата заказа</label>
-                    <input type="date" name="order_date" class="form-control-small" value="{{ today }}" required>
-                </div>
-
-                <div class="form-group-small">
-                    <label class="form-label-small"><i class="bi bi-chat-left-text"></i> Особые пожелания</label>
-                    <textarea name="special_requests" class="form-control-small" rows="2"
-                              placeholder="Аллергии, особые пожелания..."></textarea>
-                </div>
-
-                <button type="submit" class="checkout-btn-compact">
-                    <i class="bi bi-check-circle"></i> Оформить заказ
-                </button>
-            </form>
-        </div>
-    </div>
-    {% else %}
-    <div class="empty-cart-compact">
-        <i class="bi bi-cart" style="font-size: 2.5rem;"></i>
-        <h3 style="font-size: 1.3rem;">Корзина пуста</h3>
-        <p style="font-size: 0.95rem;">Добавьте блюда из меню в корзину</p>
-        <a href="{{ url_for('user.show_menu') }}" class="btn" style="padding: 8px 20px;">
-            <i class="bi bi-menu-button-wide"></i> Перейти к меню
+    <div class="cart-actions">
+        <a href="{{ url_for('user.show_menu') }}" class="btn btn-outline">
+            <i class="bi bi-arrow-left"></i> Вернуться в меню
+        </a>
+        <a href="{{ url_for('user.my_orders') }}" class="btn btn-outline">
+            <i class="bi bi-receipt"></i> Мои заказы
         </a>
     </div>
-    {% endif %}
 </div>
-{% endblock %}
 
-{% block extra_css %}
+{% if cart_items %}
+<div class="cart-content">
+    <!-- Левая колонка: Товары -->
+    <div class="cart-items-container">
+        <h2 style="color: #2c3e50; margin-bottom: 20px; font-size: 1.3rem;">
+            <i class="bi bi-cart3"></i> Ваши товары ({{ total_items }})
+        </h2>
+
+        {% for item in cart_items %}
+        <div class="cart-item">
+            <div class="cart-item-image">
+                {% if item.menu_item.image_url %}
+                <img src="{{ url_for('static', filename='uploads/menu_items/' + item.menu_item.image_url) }}"
+                     alt="{{ item.menu_item.name }}">
+                {% else %}
+                <div style="width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999;">
+                    <i class="bi bi-egg-fried" style="font-size: 1.5rem;"></i>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="cart-item-details">
+                <div class="cart-item-header">
+                    <h3 class="cart-item-title">{{ item.menu_item.name }}</h3>
+                    <div class="cart-item-price">{{ item.item_total }} ₽</div>
+                </div>
+
+                <div class="cart-item-description">
+                    {{ item.menu_item.description|truncate(100) }}
+                    {% if item.menu_item.allergens %}
+                    <div style="margin-top: 5px; color: #e74c3c; font-size: 0.8rem;">
+                        <i class="bi bi-exclamation-triangle"></i> Аллергены: {{ item.menu_item.allergens }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="cart-item-footer">
+                    <div class="cart-item-controls">
+                        <form action="{{ url_for('user.update_cart', item_id=item.id) }}" method="POST" style="display: flex; align-items: center; gap: 10px;">
+                            {{ form.hidden_tag() }}
+                            <button type="button" class="quantity-btn minus-btn" data-item-id="{{ item.id }}">-</button>
+                            <span class="quantity-value" id="quantity-{{ item.id }}">{{ item.quantity }}</span>
+                            <button type="button" class="quantity-btn plus-btn" data-item-id="{{ item.id }}">+</button>
+                        </form>
+                    </div>
+
+                    <div class="cart-item-total">
+                        {{ item.menu_item.price }} ₽ × {{ item.quantity }} = {{ item.item_total }} ₽
+                    </div>
+                </div>
+            </div>
+
+            <form action="{{ url_for('user.remove_from_cart', item_id=item.id) }}" method="POST" style="display: inline;">
+                {{ form.hidden_tag() }}
+                <button type="submit" class="cart-item-remove">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Правая колонка: Оформление заказа -->
+    <div class="summary-card">
+        <h3 style="color: #2c3e50; font-size: 1.3rem; margin-bottom: 20px;">
+            <i class="bi bi-credit-card"></i> Оформление заказа
+        </h3>
+
+        <form method="POST" action="{{ url_for('user.checkout') }}" id="checkout-form">
+            {{ form.hidden_tag() }}
+
+            <!-- Выбор даты - УЛУЧШЕННЫЙ ВАРИАНТ -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    <i class="bi bi-calendar"></i> Дата получения
+                </label>
+                <div style="position: relative;">
+                    <input type="date"
+                           name="order_date"
+                           id="order_date"
+                           class="form-control datepicker"
+                           value="{{ default_date }}"
+                           min="{{ min_date }}"
+                           max="{{ max_date }}"
+                           required
+                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+                    <i class="bi bi-calendar-date"
+                       style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #7f8c8d; pointer-events: none;"></i>
+                </div>
+                <small style="color: #7f8c8d; display: block; margin-top: 5px;">
+                    Доступно с {{ min_date.strftime('%d.%m.%Y') if min_date is defined and min_date else today.strftime('%d.%m.%Y') }}
+                    по {{ max_date.strftime('%d.%m.%Y') if max_date is defined and max_date else (today + timedelta(days=7)).strftime('%d.%m.%Y') }}
+                </small>
+            </div>
+
+            <!-- Выбор времени приема пищи -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    <i class="bi bi-clock"></i> Время приема пищи
+                </label>
+                <select name="meal_time" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;" required>
+                    <option value="lunch" selected>Обед (12:00 - 15:00)</option>
+                    <option value="breakfast">Завтрак (8:00 - 10:00)</option>
+                </select>
+            </div>
+
+            <!-- Выбор способа оплаты -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    <i class="bi bi-cash-stack"></i> Способ оплаты
+                </label>
+
+                {% if 'subscription' in payment_options and active_subscription and active_subscription.meals_remaining >= total_items %}
+                <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: #fff8e1;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="radio"
+                               id="payment-subscription"
+                               name="payment_method"
+                               value="subscription"
+                               style="transform: scale(1.2);">
+                        <div>
+                            <div style="font-weight: 600; color: #2c3e50;">
+                                <i class="bi bi-ticket-perforated" style="color: #f39c12;"></i> Оплата абонементом
+                            </div>
+                            <div style="color: #7f8c8d; font-size: 0.9rem; margin-left: 24px;">
+                                Осталось приемов: {{ active_subscription.meals_remaining }} (нужно {{ total_items }})
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                {% endif %}
+
+                <div style="padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: {% if current_user.balance >= total_price %}#f1f8e9{% else %}#ffebee{% endif %};">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="radio"
+                               id="payment-balance"
+                               name="payment_method"
+                               value="balance"
+                               {% if 'subscription' not in payment_options or not active_subscription or active_subscription.meals_remaining < total_items %}checked{% endif %}
+                               style="transform: scale(1.2);">
+                        <div>
+                            <div style="font-weight: 600; color: #2c3e50;">
+                                <i class="bi bi-wallet2" style="color: #27ae60;"></i> Оплата с баланса
+                            </div>
+                            <div style="color: #7f8c8d; font-size: 0.9rem; margin-left: 24px;">
+                                Баланс: {{ "%.2f"|format(current_user.balance) }} ₽
+                                {% if current_user.balance < total_price %}
+                                <span style="color: #e74c3c;">(недостаточно, нужно {{ "%.2f"|format(total_price - current_user.balance) }} ₽)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Особые пожелания -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
+                    <i class="bi bi-chat-left-text"></i> Особые пожелания
+                </label>
+                <textarea name="special_requests"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Укажите аллергены или особые пожелания..."
+                          style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
+            </div>
+
+            <!-- Сводка -->
+            <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1rem;">Сводка заказа</h4>
+
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #7f8c8d;">Товары:</span>
+                    <span style="font-weight: 600; color: #2c3e50;">{{ total_items }} шт.</span>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #7f8c8d;">Общая стоимость:</span>
+                    <span style="font-weight: 600; color: #2c3e50;" id="total-price">{{ "%.2f"|format(total_price) }} ₽</span>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #7f8c8d;">Ваш баланс:</span>
+                    <span style="font-weight: 600; color: {% if current_user.balance >= total_price %}#27ae60{% else %}#e74c3c{% endif %};">
+                        {{ "%.2f"|format(current_user.balance) }} ₽
+                    </span>
+                </div>
+
+                {% if active_subscription %}
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="color: #7f8c8d;">Приемов в абонементе:</span>
+                    <span style="font-weight: 600; color: #f39c12;">{{ active_subscription.meals_remaining }}</span>
+                </div>
+                {% endif %}
+
+                <div style="border-top: 1px solid #eaeaea; margin-top: 15px; padding-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #2c3e50; font-weight: 600;">Итого к оплате:</span>
+                        <span style="font-size: 1.4rem; font-weight: 700; color: #27ae60;" id="final-total">{{ "%.2f"|format(total_price) }} ₽</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопка оформления -->
+            <button type="submit"
+                    class="checkout-btn"
+                    id="checkout-btn"
+                    {% if not (current_user.balance >= total_price or (active_subscription and active_subscription.meals_remaining >= total_items)) %}disabled{% endif %}>
+                <i class="bi bi-bag-check"></i> Оформить заказ
+            </button>
+
+            <!-- Дополнительная информация -->
+            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eaeaea; text-align: center;">
+                <small style="color: #7f8c8d;">
+                    <i class="bi bi-info-circle"></i> Заказ можно отменить до получения. Средства вернутся на баланс.
+                </small>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% else %}
+<div class="empty-cart">
+    <i class="bi bi-cart"></i>
+    <h3>Корзина пуста</h3>
+    <p>Добавьте товары из меню</p>
+    <a href="{{ url_for('user.show_menu') }}" class="btn">
+        <i class="bi bi-menu-button-wide"></i> Перейти в меню
+    </a>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка изменения количества
+    document.querySelectorAll('.plus-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const quantitySpan = document.getElementById('quantity-' + itemId);
+            let quantity = parseInt(quantitySpan.textContent);
+
+            if (quantity < 10) { // Максимум 10 порций
+                quantity++;
+                updateCartQuantity(itemId, quantity);
+            }
+        });
+    });
+
+    document.querySelectorAll('.minus-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const quantitySpan = document.getElementById('quantity-' + itemId);
+            let quantity = parseInt(quantitySpan.textContent);
+
+            if (quantity > 1) {
+                quantity--;
+                updateCartQuantity(itemId, quantity);
+            } else {
+                // Если количество 1, удаляем товар
+                if (confirm('Удалить товар из корзины?')) {
+                    removeFromCart(itemId);
+                }
+            }
+        });
+    });
+
+    function updateCartQuantity(itemId, quantity) {
+        fetch('/user/cart/update/' + itemId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'quantity=' + quantity
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Ошибка при обновлении количества');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Ошибка при обновлении количества');
+        });
+    }
+
+    function removeFromCart(itemId) {
+        fetch('/user/cart/remove/' + itemId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Ошибка при удалении товара');
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Ошибка при удалении товара');
+        });
+    }
+
+    // Обновление календаря - чтобы показать календарь при клике
+    const dateInput = document.getElementById('order_date');
+    if (dateInput) {
+        dateInput.addEventListener('focus', function() {
+            this.type = 'date';
+            this.showPicker?.(); // Используем нативный пикер если поддерживается
+        });
+
+        // Также делаем календарь видимым при клике на иконку
+        const calendarIcon = dateInput.parentElement.querySelector('.bi-calendar-date');
+        if (calendarIcon) {
+            calendarIcon.addEventListener('click', function() {
+                dateInput.focus();
+                dateInput.showPicker?.();
+            });
+        }
+    }
+
+    // Проверка доступности способов оплаты
+    const subscriptionRadio = document.getElementById('payment-subscription');
+    const balanceRadio = document.getElementById('payment-balance');
+    const checkoutBtn = document.getElementById('checkout-btn');
+
+    function updateCheckoutButton() {
+        const totalPrice = {{ total_price }};
+        const userBalance = {{ current_user.balance }};
+        const totalItems = {{ total_items }};
+        const mealsRemaining = {{ active_subscription.meals_remaining if active_subscription else 0 }};
+
+        let hasValidPayment = false;
+
+        if (subscriptionRadio && subscriptionRadio.checked) {
+            hasValidPayment = mealsRemaining >= totalItems;
+        } else if (balanceRadio && balanceRadio.checked) {
+            hasValidPayment = userBalance >= totalPrice;
+        }
+
+        checkoutBtn.disabled = !hasValidPayment;
+
+        if (!hasValidPayment) {
+            checkoutBtn.title = "Нет доступного способа оплаты";
+        } else {
+            checkoutBtn.title = "";
+        }
+    }
+
+    if (subscriptionRadio) {
+        subscriptionRadio.addEventListener('change', updateCheckoutButton);
+    }
+
+    if (balanceRadio) {
+        balanceRadio.addEventListener('change', updateCheckoutButton);
+    }
+
+    // Проверка при отправке формы
+    document.getElementById('checkout-form').addEventListener('submit', function(e) {
+        const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
+
+        if (!selectedPayment) {
+            e.preventDefault();
+            alert('Выберите способ оплаты');
+            return;
+        }
+
+        const totalPrice = {{ total_price }};
+        const userBalance = {{ current_user.balance }};
+        const totalItems = {{ total_items }};
+        const mealsRemaining = {{ active_subscription.meals_remaining if active_subscription else 0 }};
+
+        if (selectedPayment.value === 'balance') {
+            if (userBalance < totalPrice) {
+                e.preventDefault();
+                alert('Недостаточно средств на балансе! Пополните баланс или выберите другой способ оплаты.');
+                return;
+            }
+        }
+
+        if (selectedPayment.value === 'subscription') {
+            if (!mealsRemaining || mealsRemaining < totalItems) {
+                e.preventDefault();
+                alert('Недостаточно приемов пищи в абонементе! Выберите другой способ оплаты.');
+                return;
+            }
+        }
+
+        // Показываем индикатор загрузки
+        checkoutBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Оформляем...';
+        checkoutBtn.disabled = true;
+    });
+
+    // Инициализация
+    updateCheckoutButton();
+});
+</script>
+
 <style>
-.cart-content {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.cart-items-section {
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    border: 1px solid #eaeaea;
-}
-
-.cart-items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.cart-item-compact {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    border-left: 3px solid #3498db;
-}
-
-.cart-item-left {
-    flex: 1;
-    min-width: 0;
-}
-
-.cart-item-name {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 1rem;
-    margin-bottom: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.cart-item-desc {
-    color: #7f8c8d;
-    font-size: 0.85rem;
-    margin-bottom: 6px;
-    line-height: 1.3;
-}
-
-.cart-item-price-single {
-    font-size: 0.9rem;
-    color: #27ae60;
-    font-weight: 500;
-}
-
-.cart-item-right {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-left: 10px;
-}
-
-.cart-item-controls-compact {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.quantity-form {
-    display: inline;
-}
-
-.quantity-btn-small {
-    width: 28px;
-    height: 28px;
+.quantity-btn {
+    width: 35px;
+    height: 35px;
     border: 1px solid #ddd;
     background: white;
-    border-radius: 4px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.quantity-btn-small:hover:not(:disabled) {
-    background: #f0f0f0;
-}
-
-.quantity-btn-small:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.quantity-value-small {
-    font-weight: 600;
-    font-size: 1rem;
-    min-width: 25px;
-    text-align: center;
-}
-
-.cart-item-total-compact {
-    font-weight: 700;
-    color: #2c3e50;
-    font-size: 1.1rem;
-    min-width: 70px;
-    text-align: right;
-}
-
-.cart-summary-compact {
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    border: 1px solid #eaeaea;
-    height: fit-content;
-    position: sticky;
-    top: 90px;
-}
-
-.summary-header {
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #f0f0f0;
-}
-
-.summary-total-compact {
-    margin-bottom: 20px;
-}
-
-.total-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    font-size: 1.1rem;
-}
-
-.total-price {
-    font-weight: 800;
-    color: #27ae60;
-    font-size: 1.4rem;
-}
-
-.form-group-small {
-    margin-bottom: 15px;
-}
-
-.form-label-small {
-    display: block;
-    margin-bottom: 5px;
-    color: #2c3e50;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.form-control-small {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 0.9rem;
     transition: all 0.3s;
+    font-size: 1.1rem;
 }
 
-.form-control-small:focus {
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    outline: none;
+.quantity-btn:hover {
+    background: #f8f9fa;
 }
 
-.checkout-btn-compact {
+.quantity-value {
+    font-weight: 600;
+    font-size: 1.1rem;
+    min-width: 40px;
+    text-align: center;
+    display: inline-block;
+}
+
+.checkout-btn {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background: #27ae60;
     color: white;
     border: none;
-    border-radius: 6px;
-    font-size: 1rem;
+    border-radius: 8px;
+    font-size: 1.1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
+    margin-top: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 10px;
 }
 
-.checkout-btn-compact:hover {
+.checkout-btn:hover:not(:disabled) {
     background: #219653;
 }
 
-.empty-cart-compact {
-    text-align: center;
-    padding: 40px 20px;
+.checkout-btn:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
-.empty-cart-compact i {
-    color: #bdc3c7;
-    margin-bottom: 15px;
+/* Стили для календаря */
+.datepicker {
+    cursor: pointer;
 }
 
-.empty-cart-compact h3 {
-    color: #2c3e50;
-    margin-bottom: 8px;
+.datepicker::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
 }
 
-.empty-cart-compact p {
-    color: #7f8c8d;
-    margin-bottom: 20px;
-    font-size: 0.95rem;
-}
-
-@media (max-width: 768px) {
-    .cart-content {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
-    .cart-summary-compact {
-        position: static;
-    }
-
-    .cart-item-compact {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
-
-    .cart-item-right {
-        justify-content: space-between;
-        margin-left: 0;
-        padding-top: 10px;
-        border-top: 1px solid #eee;
-    }
+.datepicker:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    outline: none;
 }
 </style>
 {% endblock %}

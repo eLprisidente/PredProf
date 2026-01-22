@@ -1,101 +1,240 @@
 {% extends "base.html" %}
 
-{% block title %}Меню столовой{% endblock %}
+{% block title %}Меню{% endblock %}
 
 {% block content %}
-<div class="menu-header">
-    <h1>Меню столовой</h1>
-    <p class="text-muted">Выберите блюда и добавьте их в корзину</p>
-</div>
+<div class="container">
+    <div class="dashboard-header" style="margin-bottom: 30px;">
+        <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+            Меню школьной столовой
+        </h1>
+        <p style="color: #7f8c8d; font-size: 1rem;">Выберите блюда на сегодня</p>
+    </div>
 
-<div style="text-align: right; margin-bottom: 20px;">
-    <a href="{{ url_for('user.view_cart') }}" class="btn btn-primary">
-        <i class="bi bi-cart3"></i>
-        {% if cart_count and cart_count > 0 %}
-            Корзина ({{ cart_count }})
-        {% else %}
-            Перейти в корзину
-        {% endif %}
-    </a>
-</div>
-
-<h2 style="margin-bottom: 20px; color: #2c3e50;">Завтраки</h2>
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 40px;">
-    {% for item in breakfast_items %}
-    <div style="border: 1px solid #eaeaea; border-radius: 12px; padding: 20px; background: white; box-shadow: 0 3px 10px rgba(0,0,0,0.05); transition: all 0.3s;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-            <h3 style="color: #2c3e50; font-size: 1.2rem;">{{ item.name }}</h3>
-            <span style="background: #3498db; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.9rem; font-weight: 500;">
-                Завтрак
-            </span>
+    <!-- Если меню пустое -->
+    {% if not breakfast_items and not lunch_items %}
+    <div class="dashboard-card" style="text-align: center; padding: 60px 20px;">
+        <div style="margin-bottom: 25px;">
+            <i class="bi bi-egg-fried" style="font-size: 3rem; color: #bdc3c7;"></i>
         </div>
+        <h3 style="color: #2c3e50; margin-bottom: 10px; font-size: 1.3rem;">Меню не доступно</h3>
+        <p style="color: #7f8c8d; margin-bottom: 25px; font-size: 1rem;">На сегодня меню еще не готово</p>
+        <a href="{{ url_for('user.dashboard') }}" class="btn btn-primary" style="padding: 10px 25px; font-size: 1rem;">
+            <i class="bi bi-house"></i> На главную
+        </a>
+    </div>
+    {% endif %}
 
-        <p style="color: #666; margin-bottom: 15px; line-height: 1.5;">{{ item.description }}</p>
+    <!-- Завтраки -->
+    {% if breakfast_items %}
+    <div class="dashboard-card" style="margin-bottom: 30px;">
+        <h2 style="color: #2c3e50; font-size: 1.5rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class="bi bi-sun" style="color: #f39c12;"></i>
+            Завтраки
+        </h2>
 
-        {% if item.allergens %}
-        <div style="margin-bottom: 15px; padding: 8px 12px; background: #f8d7da; border-radius: 6px; border-left: 4px solid #e74c3c;">
-            <div style="font-size: 0.9rem; color: #721c24; font-weight: 500;">
-                <i class="bi bi-exclamation-triangle"></i> Аллергены:
+        <div class="menu-items-grid">
+            {% for item in breakfast_items %}
+            <div class="menu-item-card">
+                <!-- Блок с изображением -->
+                <div class="menu-item-image">
+                    {% if item.image_url %}
+                    <img src="{{ url_for('static', filename='uploads/menu_items/' + item.image_url) }}"
+                         alt="{{ item.name }}"
+                         style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px 8px 0 0;"
+                         onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<div style='width:100%;height:160px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;color:white;font-size:2.5rem'<i class=\"bi bi-egg-fried\"></i></div>';">
+                    {% else %}
+                    <div class="menu-item-image-placeholder" style="width: 100%; height: 160px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 2.5rem;">
+                        <i class="bi bi-egg-fried"></i>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="menu-item-content" style="padding: 20px;">
+                    <div class="menu-item-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <h3 class="menu-item-name" style="font-size: 1.1rem; font-weight: 600; color: #2c3e50; margin: 0; line-height: 1.3;">
+                            {{ item.name }}
+                        </h3>
+                        <span class="menu-item-price" style="font-weight: 700; color: #27ae60; font-size: 1.2rem; white-space: nowrap; margin-left: 10px;">
+                            {{ item.price }} ₽
+                        </span>
+                    </div>
+
+                    {% if item.description %}
+                    <p class="menu-item-description" style="color: #7f8c8d; font-size: 0.9rem; line-height: 1.4; margin-bottom: 15px; flex: 1;">
+                        {{ item.description|truncate(100) }}
+                    </p>
+                    {% endif %}
+
+                    {% if item.allergens %}
+                    <div class="menu-item-allergens" style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 1rem;"></i>
+                        <span>Аллергены: {{ item.allergens|truncate(50) }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="menu-item-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                        <span class="menu-item-category" style="background: #3498db; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
+                            <i class="bi bi-{{ 'sun' if item.category == 'breakfast' else 'moon' }}"></i>
+                            {% if item.category == 'breakfast' %}Завтрак{% else %}Обед{% endif %}
+                        </span>
+
+                        <form action="{{ url_for('user.add_to_cart', item_id=item.id) }}" method="POST" style="margin: 0;">
+                            <button type="submit" class="btn btn-success btn-sm" style="background: #27ae60; color: white; padding: 8px 15px; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                <i class="bi bi-cart-plus"></i> В корзину
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div style="font-size: 0.85rem; color: #721c24;">{{ item.allergens }}</div>
-        </div>
-        {% endif %}
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-            <div>
-                <span style="font-weight: bold; color: #27ae60; font-size: 1.3rem;">{{ item.price }} ₽</span>
-            </div>
-
-            <form action="{{ url_for('user.add_to_cart', item_id=item.id) }}" method="POST">
-                <button type="submit" class="btn btn-success" style="padding: 8px 20px;">
-                    <i class="bi bi-cart-plus"></i> В корзину
-                </button>
-            </form>
+            {% endfor %}
         </div>
     </div>
-    {% endfor %}
-</div>
+    {% endif %}
 
-<h2 style="margin-bottom: 20px; color: #2c3e50;">Обеды</h2>
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
-    {% for item in lunch_items %}
-    <div style="border: 1px solid #eaeaea; border-radius: 12px; padding: 20px; background: white; box-shadow: 0 3px 10px rgba(0,0,0,0.05); transition: all 0.3s;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-            <h3 style="color: #2c3e50; font-size: 1.2rem;">{{ item.name }}</h3>
-            <span style="background: #e74c3c; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.9rem; font-weight: 500;">
-                Обед
-            </span>
-        </div>
+    <!-- Обеды -->
+    {% if lunch_items %}
+    <div class="dashboard-card" style="margin-bottom: 30px;">
+        <h2 style="color: #2c3e50; font-size: 1.5rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class="bi bi-moon" style="color: #3498db;"></i>
+            Обеды
+        </h2>
 
-        <p style="color: #666; margin-bottom: 15px; line-height: 1.5;">{{ item.description }}</p>
+        <div class="menu-items-grid">
+            {% for item in lunch_items %}
+            <div class="menu-item-card">
+                <!-- Блок с изображением -->
+                <div class="menu-item-image">
+                    {% if item.image_url %}
+                    <img src="{{ url_for('static', filename='uploads/menu_items/' + item.image_url) }}"
+                         alt="{{ item.name }}"
+                         style="width: 100%; height: 160px; object-fit: cover; border-radius: 8px 8px 0 0;"
+                         onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<div style=\"width:100%;height:160px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;color:white;font-size:2.5rem;\"><i class=\"bi bi-egg-fried\"></i></div>';">
+                    {% else %}
+                    <div class="menu-item-image-placeholder" style="width: 100%; height: 160px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 2.5rem;">
+                        <i class="bi bi-egg-fried"></i>
+                    </div>
+                    {% endif %}
+                </div>
 
-        {% if item.allergens %}
-        <div style="margin-bottom: 15px; padding: 8px 12px; background: #f8d7da; border-radius: 6px; border-left: 4px solid #e74c3c;">
-            <div style="font-size: 0.9rem; color: #721c24; font-weight: 500;">
-                <i class="bi bi-exclamation-triangle"></i> Аллергены:
+                <div class="menu-item-content" style="padding: 20px;">
+                    <div class="menu-item-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <h3 class="menu-item-name" style="font-size: 1.1rem; font-weight: 600; color: #2c3e50; margin: 0; line-height: 1.3;">
+                            {{ item.name }}
+                        </h3>
+                        <span class="menu-item-price" style="font-weight: 700; color: #27ae60; font-size: 1.2rem; white-space: nowrap; margin-left: 10px;">
+                            {{ item.price }} ₽
+                        </span>
+                    </div>
+
+                    {% if item.description %}
+                    <p class="menu-item-description" style="color: #7f8c8d; font-size: 0.9rem; line-height: 1.4; margin-bottom: 15px; flex: 1;">
+                        {{ item.description|truncate(100) }}
+                    </p>
+                    {% endif %}
+
+                    {% if item.allergens %}
+                    <div class="menu-item-allergens" style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 1rem;"></i>
+                        <span>Аллергены: {{ item.allergens|truncate(50) }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="menu-item-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                        <span class="menu-item-category" style="background: #3498db; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px;">
+                            <i class="bi bi-{{ 'sun' if item.category == 'breakfast' else 'moon' }}"></i>
+                            {% if item.category == 'breakfast' %}Завтрак{% else %}Обед{% endif %}
+                        </span>
+
+                        <form action="{{ url_for('user.add_to_cart', item_id=item.id) }}" method="POST" style="margin: 0;">
+                            <button type="submit" class="btn btn-success btn-sm" style="background: #27ae60; color: white; padding: 8px 15px; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                <i class="bi bi-cart-plus"></i> В корзину
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div style="font-size: 0.85rem; color: #721c24;">{{ item.allergens }}</div>
-        </div>
-        {% endif %}
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-            <div>
-                <span style="font-weight: bold; color: #27ae60; font-size: 1.3rem;">{{ item.price }} ₽</span>
-            </div>
-
-            <form action="{{ url_for('user.add_to_cart', item_id=item.id) }}" method="POST">
-                <button type="submit" class="btn btn-success" style="padding: 8px 20px;">
-                    <i class="bi bi-cart-plus"></i> В корзину
-                </button>
-            </form>
+            {% endfor %}
         </div>
     </div>
-    {% endfor %}
-</div>
+    {% endif %}
 
-<div style="text-align: center; margin-top: 40px;">
-    <a href="{{ url_for('user.dashboard') }}" class="btn btn-outline">
-        <i class="bi bi-arrow-left"></i> Вернуться на главную
-    </a>
+    <!-- Навигация -->
+    <div class="row" style="margin-top: 30px;">
+        <div class="col-md-6">
+            <a href="{{ url_for('user.view_cart') }}" class="btn btn-primary" style="width: 100%; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="bi bi-cart3"></i> Перейти в корзину
+                {% if cart_count and cart_count > 0 %}
+                <span class="badge bg-white text-primary" style="margin-left: 8px; padding: 4px 8px; border-radius: 12px;">{{ cart_count }}</span>
+                {% endif %}
+            </a>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.menu-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.menu-item-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #eaeaea;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.menu-item-card:hover {
+    border-color: #3498db;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+}
+
+.menu-item-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.btn-success {
+    background: #27ae60 !important;
+    border: none !important;
+}
+
+.btn-success:hover {
+    background: #219653 !important;
+}
+
+.btn-primary {
+    background: #3498db !important;
+    border: none !important;
+}
+
+.btn-primary:hover {
+    background: #2980b9 !important;
+}
+
+@media (max-width: 768px) {
+    .menu-items-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .menu-item-card {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .menu-items-grid {
+        gap: 15px;
+    }
+}
+</style>
 {% endblock %}

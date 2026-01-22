@@ -1,0 +1,180 @@
+/* static/css/calendar.css - Стили для простого календаря */
+
+.simple-calendar {
+    width: 280px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    border: 1px solid #eaeaea;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.calendar-prev,
+.calendar-next {
+    background: #f8f9fa;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #2c3e50;
+    transition: all 0.2s;
+}
+
+.calendar-prev:hover,
+.calendar-next:hover {
+    background: #3498db;
+    color: white;
+}
+
+.calendar-title {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1rem;
+    text-align: center;
+    flex: 1;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.calendar-weekdays div {
+    font-weight: 600;
+    color: #7f8c8d;
+    font-size: 0.85rem;
+    padding: 5px 0;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    text-align: center;
+}
+
+.calendar-day {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    color: #2c3e50;
+}
+
+.calendar-day.selectable:hover {
+    background: #3498db;
+    color: white;
+    transform: scale(1.05);
+}
+
+.calendar-day.selected {
+    background: #27ae60;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+}
+
+.calendar-day.today {
+    border: 2px solid #3498db;
+    color: #3498db;
+    font-weight: 600;
+}
+
+.calendar-day.today.selected {
+    background: #27ae60;
+    border-color: #27ae60;
+    color: white;
+}
+
+.calendar-day.disabled {
+    color: #bdc3c7;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+
+.calendar-day.empty {
+    background: transparent;
+    cursor: default;
+}
+
+/* Стили для поля ввода с календарем */
+.datepicker-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.datepicker-input {
+    width: 100%;
+    padding: 10px 40px 10px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: white;
+    cursor: pointer;
+}
+
+.datepicker-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.datepicker-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #3498db;
+    pointer-events: none;
+    font-size: 1.1rem;
+}
+
+/* Для мобильных устройств */
+@media (max-width: 768px) {
+    .simple-calendar {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 90%;
+        max-width: 320px;
+        z-index: 10000;
+    }
+
+    .calendar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+    }
+}
