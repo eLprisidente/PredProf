@@ -5,6 +5,7 @@ from flask_login import LoginManager, current_user
 from sqlalchemy import text
 import traceback
 from datetime import datetime
+from datetime import datetime
 
 app = Flask(__name__,
             template_folder='templates',
@@ -97,6 +98,18 @@ from modules.user.routes import get_cart_count
 def inject_cart_count():
     """Добавить cart_count во все шаблоны"""
     return {'cart_count': get_cart_count()}
+
+
+@app.context_processor
+def inject_now():
+    """Добавить текущую дату во все шаблоны"""
+    return {'now': datetime.utcnow()}
+
+@app.context_processor
+def inject_csrf_token():
+    """Добавить CSRF токен для AJAX запросов"""
+    from flask_wtf.csrf import generate_csrf
+    return {'csrf_token': generate_csrf}
 
 
 @app.context_processor
@@ -222,4 +235,4 @@ def init_database():
 if __name__ == '__main__':
     # Инициализируем БД перед запуском
     init_database()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=8146)

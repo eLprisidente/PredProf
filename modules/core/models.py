@@ -81,6 +81,7 @@ class Order(db.Model):
     payment_status = db.Column(db.String(20), default='pending')  # 'pending', 'paid', 'failed', 'refunded'
     special_requests = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    total_price = db.Column(db.Numeric(10, 2), default=0)
 
     # Связи
     user = db.relationship('User', backref='orders')
@@ -92,7 +93,9 @@ class Order(db.Model):
 
     @property
     def total_price(self):
-        return self.menu_item.price * self.quantity
+        if self.menu_item and self.quantity:
+            return self.menu_item.price * self.quantity
+        return 0
 
 
 class Feedback(db.Model):

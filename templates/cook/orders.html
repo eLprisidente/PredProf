@@ -1,79 +1,689 @@
 {% extends "base.html" %}
 
-{% block title %}Управление заказами{% endblock %}
+{% block title %}Заказы на сегодня - Повар{% endblock %}
 
 {% block content %}
-<h1>Управление заказами</h1>
+<div class="container">
+    <div class="dashboard-header" style="margin-bottom: 30px;">
+        <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+            Заказы на сегодня
+        </h1>
+        <p style="color: #7f8c8d; font-size: 1rem;">
+            {{ now.strftime('%d %B %Y') }} | Управление заказами
+        </p>
+    </div>
 
-<h2>Завтраки ({{ breakfast_orders|length }})</h2>
-{% if breakfast_orders %}
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Ученик</th>
-            <th>Блюдо</th>
-            <th>Количество</th>
-            <th>Статус</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in breakfast_orders %}
-        <tr>
-            <td>#{{ order.id }}</td>
-            <td>{{ order.user.full_name }}</td>
-            <td>{{ order.menu_item.name }}</td>
-            <td>{{ order.quantity }}</td>
-            <td>{{ order.status|capitalize }}</td>
-            <td>
-                {% if order.status != 'received' %}
-                <form action="{{ url_for('cook.complete_order', order_id=order.id) }}" method="POST" style="display: inline;">
-                    <button type="submit" class="btn">Выдано</button>
-                </form>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>Нет заказов на завтрак.</p>
-{% endif %}
+    <!-- Фильтры по времени приема пищи -->
+    <div class="dashboard-card" style="margin-bottom: 20px;">
+        <div class="filter-buttons" id="filterButtons">
+            <button type="button" class="filter-btn active" data-filter="all">
+                Все заказы ({{ breakfast_orders|length + lunch_orders|length }})
+            </button>
+            <button type="button" class="filter-btn" data-filter="breakfast">
+                <i class="bi bi-sun"></i> Завтраки ({{ breakfast_orders|length }})
+            </button>
+            <button type="button" class="filter-btn" data-filter="lunch">
+                <i class="bi bi-moon"></i> Обеды ({{ lunch_orders|length }})
+            </button>
+            <button type="button" class="filter-btn" data-filter="pending">
+                <i class="bi bi-clock"></i> В работе ({{ pending_count }})
+            </button>
+            <button type="button" class="filter-btn" data-filter="completed">
+                <i class="bi bi-check-circle"></i> Выполнено ({{ completed_count }})
+            </button>
+        </div>
+    </div>
 
-<h2 style="margin-top: 40px;">Обеды ({{ lunch_orders|length }})</h2>
-{% if lunch_orders %}
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Ученик</th>
-            <th>Блюдо</th>
-            <th>Количество</th>
-            <th>Статус</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for order in lunch_orders %}
-        <tr>
-            <td>#{{ order.id }}</td>
-            <td>{{ order.user.full_name }}</td>
-            <td>{{ order.menu_item.name }}</td>
-            <td>{{ order.quantity }}</td>
-            <td>{{ order.status|capitalize }}</td>
-            <td>
-                {% if order.status != 'received' %}
-                <form action="{{ url_for('cook.complete_order', order_id=order.id) }}" method="POST" style="display: inline;">
-                    <button type="submit" class="btn">Выдано</button>
-                </form>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>Нет заказов на обед.</p>
-{% endif %}
+    <!-- Если заказов нет -->
+    {% if breakfast_orders|length == 0 and lunch_orders|length == 0 %}
+    <div class="empty-state text-center" style="padding: 60px 20px; max-width: 400px; margin: 0 auto;">
+        <i class="bi bi-receipt" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 15px;"></i>
+        <h3 style="color: #2c3e50; margin-bottom: 10px; font-size: 1.3rem;">Нет заказов на сегодня</h3>
+        <p style="color: #7f8c8d; margin-bottom: 20px; font-size: 0.95rem;">
+            На сегодняшний день заказов не поступало
+        </p>
+        <a href="{{ url_for('cook.cook_dashboard') }}" class="btn btn-outline-primary"
+           style="padding: 8px 16px; font-size: 0.9rem; border-radius: 6px;">
+            <i class="bi bi-arrow-left"></i> Вернуться на дашборд
+        </a>
+    </div>
+    {% else %}
+
+    <!-- Таблица заказов -->
+    <div class="dashboard-card">
+        <div class="table-responsive">
+            <table class="admin-table" id="ordersTable">
+                <thead>
+                    <tr>
+                        <th width="60">ID</th>
+                        <th>Ученик</th>
+                        <th width="100">Класс</th>
+                        <th>Блюдо</th>
+                        <th width="100">Кол-во</th>
+                        <th width="120">Время</th>
+                        <th width="130">Статус заказа</th>
+                        <th width="150">Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                    <!-- Все заказы (завтраки + обеды) -->
+                    {% for order in breakfast_orders + lunch_orders %}
+                    <tr class="order-row"
+                        data-order-id="{{ order.id }}"
+                        data-meal-time="{{ order.meal_time }}"
+                        data-status="{{ order.status }}">
+                        <td class="fw-bold">#{{ order.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-small me-2">
+                                    {% if order.user.avatar_url %}
+                                    <img src="{{ order.user.avatar_url }}" alt="{{ order.user.full_name }}"
+                                         class="rounded-circle" width="32" height="32">
+                                    {% else %}
+                                    <div class="avatar-placeholder-small bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                         style="width: 32px; height: 32px;">
+                                        {{ order.user.full_name[0]|upper }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="fw-medium">{{ order.user.full_name }}</div>
+                                    <small class="text-muted">{{ order.user.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if order.user.class_group %}
+                            <span class="badge badge-info">{{ order.user.class_group }}</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-bold">{{ order.menu_item.name if order.menu_item else 'Блюдо удалено' }}</div>
+                            <small class="text-muted">{{ order.menu_item.description|truncate(30) if order.menu_item else '' }}</small>
+                        </td>
+                        <td>
+                            <span class="badge badge-primary" style="font-size: 1rem;">{{ order.quantity }}</span>
+                        </td>
+                        <td>
+                            <div class="text-nowrap">
+                                {% if order.meal_time == 'breakfast' %}
+                                <i class="bi bi-sun"></i> Завтрак
+                                {% else %}
+                                <i class="bi bi-moon"></i> Обед
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">{{ order.created_at.strftime('%H:%M') if order.created_at else '' }}</small>
+                        </td>
+                        <td>
+                            {% if order.status == 'received' %}
+                                <span class="badge badge-success">
+                                    <i class="bi bi-check-circle"></i> Выдано
+                                </span>
+                            {% elif order.status == 'cancelled' %}
+                                <span class="badge badge-secondary">
+                                    <i class="bi bi-x-circle"></i> Отменен
+                                </span>
+                            {% else %}
+                                <span class="badge badge-warning">
+                                    <i class="bi bi-clock"></i> Готовится
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                {% if order.status not in ['received', 'cancelled'] %}
+                                <button type="button" class="btn btn-sm btn-success complete-order-btn"
+                                        data-order-id="{{ order.id }}"
+                                        title="Отметить как выданное">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger cancel-order-btn"
+                                        data-order-id="{{ order.id }}"
+                                        title="Отменить заказ">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                                {% elif order.status == 'received' %}
+                                <span class="text-success"><i class="bi bi-check-circle"></i> Завершено</span>
+                                {% else %}
+                                <span class="text-muted"><i class="bi bi-x-circle"></i> Отменен</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Статистика заказов -->
+    <div class="dashboard-grid">
+        <div class="dashboard-column">
+            <div class="dashboard-card" style="text-align: center;">
+                <div class="stat-value" style="color: #3498db; font-size: 2.5rem; font-weight: 700;">
+                    {{ breakfast_orders|length + lunch_orders|length }}
+                </div>
+                <div class="stat-label">Всего заказов</div>
+            </div>
+        </div>
+
+        <div class="dashboard-column">
+            <div class="dashboard-card" style="text-align: center;">
+                <div class="stat-value" style="color: #27ae60; font-size: 2.5rem; font-weight: 700;">
+                    {{ breakfast_orders|length }}
+                </div>
+                <div class="stat-label">Завтраков</div>
+            </div>
+        </div>
+
+        <div class="dashboard-column">
+            <div class="dashboard-card" style="text-align: center;">
+                <div class="stat-value" style="color: #f39c12; font-size: 2.5rem; font-weight: 700;">
+                    {{ lunch_orders|length }}
+                </div>
+                <div class="stat-label">Обедов</div>
+            </div>
+        </div>
+
+        <div class="dashboard-column">
+            <div class="dashboard-card" style="text-align: center;">
+                <div class="stat-value" style="color: #2ecc71; font-size: 2.5rem; font-weight: 700;">
+                    {{ completed_count }}
+                </div>
+                <div class="stat-label">Выполнено</div>
+            </div>
+        </div>
+
+        <div class="dashboard-column">
+            <div class="dashboard-card" style="text-align: center;">
+                <div class="stat-value" style="color: #e74c3c; font-size: 2.5rem; font-weight: 700;">
+                    {{ cancelled_count }}
+                </div>
+                <div class="stat-label">Отменено</div>
+            </div>
+        </div>
+
+        <div class="dashboard-column">
+            <div class="dashboard-card" style="text-align: center;">
+                <div class="stat-value" style="color: #9b59b6; font-size: 2.5rem; font-weight: 700;">
+                    {{ pending_count }}
+                </div>
+                <div class="stat-label">В работе</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Быстрые действия -->
+    <div class="row" style="margin-top: 30px;">
+        <div class="col-md-4">
+            <a href="{{ url_for('cook.cook_dashboard') }}" class="btn btn-outline-primary" style="width: 100%; padding: 12px;">
+                <i class="bi bi-arrow-left"></i> На дашборд
+            </a>
+        </div>
+        <div class="col-md-4">
+            <button id="completeAllBreakfastBtn" class="btn btn-success" style="width: 100%; padding: 12px;">
+                <i class="bi bi-check-all"></i> Завершить все завтраки
+            </button>
+        </div>
+        <div class="col-md-4">
+            <button id="refreshOrdersBtn" class="btn btn-info" style="width: 100%; padding: 12px;">
+                <i class="bi bi-arrow-clockwise"></i> Обновить заказы
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background: white;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+    cursor: pointer;
+    border: none;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th {
+    background: #f8f9fa;
+    color: #2c3e50;
+    font-weight: 600;
+    padding: 15px;
+    text-align: left;
+    border-bottom: 2px solid #eaeaea;
+}
+
+.admin-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.admin-table tr:hover {
+    background: #f8f9fa;
+}
+
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.badge-primary {
+    background: #d4e6f1;
+    color: #21618c;
+}
+
+.badge-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-secondary {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.btn-group {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-sm {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+}
+
+.empty-state {
+    background: white;
+    border-radius: 12px;
+    padding: 60px 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #eaeaea;
+}
+
+.stat-value {
+    line-height: 1;
+}
+
+.stat-label {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    margin-top: 8px;
+}
+
+.avatar-small {
+    flex-shrink: 0;
+}
+
+.avatar-placeholder-small {
+    font-size: 0.9rem;
+}
+
+.order-row.status-received {
+    opacity: 0.7;
+    background-color: rgba(39, 174, 96, 0.05);
+}
+
+.order-row.status-cancelled {
+    opacity: 0.5;
+    background-color: rgba(149, 165, 166, 0.05);
+}
+
+.order-row.status-ordered {
+    background-color: rgba(243, 156, 18, 0.05);
+}
+
+@media (max-width: 768px) {
+    .filter-buttons {
+        justify-content: center;
+    }
+
+    .admin-table {
+        font-size: 0.9rem;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 10px 8px;
+    }
+
+    .btn-group {
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-buttons {
+        flex-direction: column;
+    }
+
+    .filter-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ========== ФУНКЦИОНАЛ ФИЛЬТРАЦИИ ==========
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const orderRows = document.querySelectorAll('.order-row');
+
+    // Функция фильтрации заказов
+    function filterOrders(filterType) {
+        orderRows.forEach(row => {
+            const mealTime = row.getAttribute('data-meal-time');
+            const status = row.getAttribute('data-status');
+            let showRow = true;
+
+            switch(filterType) {
+                case 'all':
+                    showRow = true;
+                    break;
+                case 'breakfast':
+                    showRow = mealTime === 'breakfast';
+                    break;
+                case 'lunch':
+                    showRow = mealTime === 'lunch';
+                    break;
+                case 'pending':
+                    showRow = status !== 'received' && status !== 'cancelled';
+                    break;
+                case 'completed':
+                    showRow = status === 'received';
+                    break;
+                default:
+                    showRow = true;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+        });
+
+        // Обновляем активную кнопку
+        filterButtons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.getAttribute('data-filter') === filterType) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Показываем уведомление о фильтрации
+        const filterNames = {
+            'all': 'Все заказы',
+            'breakfast': 'Завтраки',
+            'lunch': 'Обеды',
+            'pending': 'В работе',
+            'completed': 'Выполненные'
+        };
+        showToast('info', `Показаны: ${filterNames[filterType]}`);
+    }
+
+    // Назначаем обработчики на кнопки фильтров
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const filterType = this.getAttribute('data-filter');
+            filterOrders(filterType);
+        });
+    });
+
+    // ========== ФУНКЦИОНАЛ УПРАВЛЕНИЯ ЗАКАЗАМИ ==========
+    // Обработка отметки заказа как выданного
+    document.querySelectorAll('.complete-order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const orderNumber = this.closest('tr').querySelector('td:first-child').textContent;
+
+            if (confirm(`Отметить заказ ${orderNumber} как выданный?`)) {
+                completeOrder(orderId);
+            }
+        });
+    });
+
+    // Обработка отмены заказа
+    document.querySelectorAll('.cancel-order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const orderNumber = this.closest('tr').querySelector('td:first-child').textContent;
+
+            if (confirm(`Отменить заказ ${orderNumber}?`)) {
+                cancelOrder(orderId);
+            }
+        });
+    });
+
+    // Завершить все завтраки
+    document.getElementById('completeAllBreakfastBtn')?.addEventListener('click', function() {
+        const breakfastOrders = Array.from(document.querySelectorAll('.order-row[data-meal-time="breakfast"]'))
+            .filter(row => row.getAttribute('data-status') !== 'received' &&
+                          row.getAttribute('data-status') !== 'cancelled');
+
+        if (breakfastOrders.length === 0) {
+            showToast('info', 'Нет активных заказов на завтрак');
+            return;
+        }
+
+        if (confirm(`Завершить все завтраки (${breakfastOrders.length} заказов)?`)) {
+            breakfastOrders.forEach(row => {
+                const orderId = row.getAttribute('data-order-id');
+                completeOrder(orderId, false);
+            });
+            setTimeout(() => {
+                showToast('success', `Завершено ${breakfastOrders.length} заказов на завтрак`);
+            }, 500);
+        }
+    });
+
+    // Обновить заказы
+    document.getElementById('refreshOrdersBtn')?.addEventListener('click', function() {
+        location.reload();
+    });
+
+    // ========== AJAX ФУНКЦИИ ==========
+    // Функция отметки заказа как выданного
+    function completeOrder(orderId, showNotification = true) {
+        fetch(`/cook/order/${orderId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем строку в таблице
+                const row = document.querySelector(`.order-row[data-order-id="${orderId}"]`);
+                if (row) {
+                    row.setAttribute('data-status', 'received');
+
+                    // Обновляем статус в ячейке
+                    const statusCell = row.querySelector('td:nth-child(7)');
+                    statusCell.innerHTML = `
+                        <span class="badge badge-success">
+                            <i class="bi bi-check-circle"></i> Выдано
+                        </span>
+                    `;
+
+                    // Обновляем кнопки действий
+                    const actionsCell = row.querySelector('td:nth-child(8)');
+                    actionsCell.innerHTML = `
+                        <span class="text-success"><i class="bi bi-check-circle"></i> Завершено</span>
+                    `;
+
+                    // Добавляем класс стиля
+                    row.classList.remove('status-ordered');
+                    row.classList.add('status-received');
+                }
+
+                if (showNotification) {
+                    showToast('success', data.message);
+                }
+            } else {
+                showToast('error', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', 'Ошибка сервера');
+        });
+    }
+
+    // Функция отмены заказа
+    function cancelOrder(orderId) {
+        fetch(`/cook/order/${orderId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем строку в таблице
+                const row = document.querySelector(`.order-row[data-order-id="${orderId}"]`);
+                if (row) {
+                    row.setAttribute('data-status', 'cancelled');
+
+                    // Обновляем статус в ячейке
+                    const statusCell = row.querySelector('td:nth-child(7)');
+                    statusCell.innerHTML = `
+                        <span class="badge badge-secondary">
+                            <i class="bi bi-x-circle"></i> Отменен
+                        </span>
+                    `;
+
+                    // Обновляем кнопки действий
+                    const actionsCell = row.querySelector('td:nth-child(8)');
+                    actionsCell.innerHTML = `
+                        <span class="text-muted"><i class="bi bi-x-circle"></i> Отменен</span>
+                    `;
+
+                    // Добавляем класс стиля
+                    row.classList.remove('status-ordered');
+                    row.classList.add('status-cancelled');
+                }
+
+                showToast('success', data.message);
+            } else {
+                showToast('error', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', 'Ошибка сервера');
+        });
+    }
+
+    // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+    // Функция показа уведомлений
+    function showToast(type, message) {
+        // Создаем контейнер для тостов, если его нет
+        if (!document.getElementById('toast-container')) {
+            const container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi ${type === 'success' ? 'bi-check-circle' : type === 'error' ? 'bi-exclamation-triangle' : 'bi-info-circle'} me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+
+        document.getElementById('toast-container').appendChild(toast);
+
+        // Инициализируем и показываем тост
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+
+        // Удаляем тост после скрытия
+        toast.addEventListener('hidden.bs.toast', function () {
+            toast.remove();
+        });
+    }
+
+    // Автообновление заказов каждые 30 секунд
+    setInterval(() => {
+        fetch('/cook/api/today-orders')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Заказы обновлены:', data.orders?.length || 0);
+                // Здесь можно добавить логику обновления без перезагрузки страницы
+            })
+            .catch(error => console.error('Ошибка обновления:', error));
+    }, 30000);
+});
+</script>
 {% endblock %}

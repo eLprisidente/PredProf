@@ -4,44 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="384db4b7-ae9f-4069-b2be-230614ad11aa" name="Changes" comment="v1">
-      <change afterPath="$PROJECT_DIR$/.idea/predprof.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/static/css/style.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/static/js/main.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/admin/feedback.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/admin/reports.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/admin/supply_requests.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/admin/users.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/cook/edit_menu_item.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/cook/new_menu_item.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/cook/supply_request_form.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/user/cart.html" afterDir="false" />
+    <list default="true" id="384db4b7-ae9f-4069-b2be-230614ad11aa" name="Changes" comment="Pipenv version">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/instance/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/instance/school_cafeteria.db" beforeDir="false" afterPath="$PROJECT_DIR$/instance/school_cafeteria.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/admin/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/admin/routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/auth/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/auth/forms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/auth/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/auth/routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/auth/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/auth/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/cook/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/cook/forms.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/modules/cook/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/cook/routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/cook/services.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/cook/services.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/core/constants.,py.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/core/constants.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/core/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/user/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/user/forms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/user/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/user/routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/admin/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/dashboard.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/admin/statistics.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/statistics.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/auth/login.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/auth/login.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/auth/register.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/auth/register.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cook/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/dashboard.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cook/menu_management.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/menu_management.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cook/supply_requests.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/supply_requests.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/user/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/dashboard.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/user/menu.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/menu.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/user/orders.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/orders.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/user/profile.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/profile.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/cook/inventory.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/inventory.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/cook/orders.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/orders.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/user/cart.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/cart.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,6 +32,18 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="UPDATE_TYPE" value="REBASE" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;eLprisidente&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/eLprisidente/PredProf.git&quot;,
+    &quot;accountId&quot;: &quot;d74d207e-1152-493f-b8dd-d91568942618&quot;
+  }
+}</component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
@@ -79,9 +63,13 @@
   &quot;keyToString&quot;: {
     &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
     &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Python.app.executor&quot;: &quot;Run&quot;,
+    &quot;Python.routes.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/00544/PycharmProjects/predprof&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;vcs.Git&quot;
   }
@@ -93,7 +81,8 @@
   </component>
   <component name="RunManager">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
-      <module name="predprof" />
+      <module name="PredProf" />
+      <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
@@ -114,6 +103,13 @@
       <method v="2" />
     </configuration>
   </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-495700d161d3-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.22562.220" />
+      </set>
+    </attachedChunks>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -130,11 +126,21 @@
       <option name="project" value="LOCAL" />
       <updated>1768431000968</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Pipenv version">
+      <option name="closed" value="true" />
+      <created>1769676431404</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1769676431404</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="v1" />
-    <option name="LAST_COMMIT_MESSAGE" value="v1" />
+    <MESSAGE value="v2.5" />
+    <MESSAGE value="Pipenv version" />
+    <option name="LAST_COMMIT_MESSAGE" value="Pipenv version" />
   </component>
 </project>
