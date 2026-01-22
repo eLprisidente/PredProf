@@ -234,7 +234,7 @@
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <a href="{{ url_for('index') }}" class="logo">🍽️ Школьная Столовая</a>
+            <a href="{{ url_for('index') }}" class="logo">Школьная Столовая</a>
             <div class="nav-links">
                 {% if current_user.is_authenticated %}
                     <span>{{ current_user.full_name }} ({{ current_user.role }})</span>
