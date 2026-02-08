@@ -5,485 +5,324 @@
 {% block content %}
 <div class="container">
     <div class="dashboard-header" style="margin-bottom: 30px;">
-        <div>
-            <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
-                Генерация отчетов
-            </h1>
-            <p style="color: #7f8c8d; font-size: 1rem;">Создание статистических и финансовых отчетов</p>
-        </div>
+        <h1 style="color: #2c3e50; font-size: 2rem; font-weight: 700; margin-bottom: 10px;">
+            <i class="bi bi-file-earmark-text"></i> Генерация отчетов
+        </h1>
+        <p style="color: #7f8c8d; font-size: 1rem;">Создание статистических и финансовых отчетов</p>
     </div>
 
-    <!-- Уведомления -->
-    <div id="ajaxAlert" style="display: none; margin-bottom: 20px;"></div>
+    <div class="dashboard-card">
+        <form method="POST" action="{{ url_for('admin.generate_reports') }}" id="reportForm">
+            {{ form.hidden_tag() }}
 
-    <div class="dashboard-grid">
-        <!-- Левая колонка: Форма генерации -->
-        <div class="dashboard-column" style="grid-column: span 2;">
-            <div class="dashboard-card">
-                <h2><i class="bi bi-gear"></i> Настройки отчета</h2>
-                <form id="reportForm">
-                    <div class="form-group">
-                        <label>Тип отчета</label>
-                        <select class="form-control" id="reportType" onchange="toggleCustomDates()">
-                            <option value="daily">Ежедневный</option>
-                            <option value="weekly">Еженедельный</option>
-                            <option value="monthly">Ежемесячный</option>
-                            <option value="custom">Произвольный период</option>
-                        </select>
-                    </div>
-                    
-                    <div id="customDates" style="display: none; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div class="form-group">
-                            <label>Начальная дата</label>
-                            <input type="date" class="form-control" id="startDate">
-                        </div>
-                        <div class="form-group">
-                            <label>Конечная дата</label>
-                            <input type="date" class="form-control" id="endDate">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Включить данные:</label>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="includeOrders" checked>
-                                <label class="form-check-label" for="includeOrders">Заказы и продажи</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="includeUsers" checked>
-                                <label class="form-check-label" for="includeUsers">Пользователи</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="includeSupply" checked>
-                                <label class="form-check-label" for="includeSupply">Заявки на закупки</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="includePopular" checked>
-                                <label class="form-check-label" for="includePopular">Популярные блюда</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Формат отчета</label>
-                        <select class="form-control" id="reportFormat">
-                            <option value="html">HTML (веб-страница)</option>
-                            <option value="json">JSON (данные)</option>
-                            <option value="pdf" disabled>PDF (в разработке)</option>
-                            <option value="excel" disabled>Excel (в разработке)</option>
-                        </select>
-                    </div>
-                    
-                    <button type="button" class="btn btn-primary" onclick="generateReport()" style="width: 100%; padding: 12px; margin-top: 20px;">
-                        <i class="bi bi-file-earmark-text"></i> Сгенерировать отчет
-                    </button>
-                </form>
-            </div>
-        </div>
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.2rem;">
+                    <i class="bi bi-calendar"></i> Параметры отчета
+                </h3>
 
-        <!-- Правая колонка: Быстрые отчеты -->
-        <div class="dashboard-column">
-            <div class="dashboard-card">
-                <h2><i class="bi bi-lightning"></i> Быстрые отчеты</h2>
-                <div class="quick-reports">
-                    <button class="quick-report-btn" onclick="generateQuickReport('daily')">
-                        <i class="bi bi-calendar-day"></i>
-                        <span>За сегодня</span>
-                    </button>
-                    <button class="quick-report-btn" onclick="generateQuickReport('weekly')">
-                        <i class="bi bi-calendar-week"></i>
-                        <span>За неделю</span>
-                    </button>
-                    <button class="quick-report-btn" onclick="generateQuickReport('monthly')">
-                        <i class="bi bi-calendar-month"></i>
-                        <span>За месяц</span>
-                    </button>
-                    <button class="quick-report-btn" onclick="showLastReport()">
-                        <i class="bi bi-clock-history"></i>
-                        <span>Последний отчет</span>
-                    </button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        {{ form.report_type.label(class="form-label", style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;") }}
+                        {{ form.report_type(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;") }}
+                        {% if form.report_type.errors %}
+                            <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 5px;">
+                                {% for error in form.report_type.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group" id="dateRangeGroup">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                {{ form.start_date.label(class="form-label", style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;") }}
+                                {{ form.start_date(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;", type="date") }}
+                                {% if form.start_date.errors %}
+                                    <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 5px;">
+                                        {% for error in form.start_date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                {{ form.end_date.label(class="form-label", style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;") }}
+                                {{ form.end_date(class="form-control", style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;", type="date") }}
+                                {% if form.end_date.errors %}
+                                    <div style="color: #e74c3c; font-size: 0.9rem; margin-top: 5px;">
+                                        {% for error in form.end_date.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="dashboard-card">
-                <h2><i class="bi bi-info-circle"></i> Информация</h2>
-                <div class="report-info">
-                    <p><strong>Ежедневный отчет:</strong> Статистика за текущий день.</p>
-                    <p><strong>Еженедельный отчет:</strong> Статистика за последние 7 дней.</p>
-                    <p><strong>Ежемесячный отчет:</strong> Статистика за последние 30 дней.</p>
-                    <p><strong>Произвольный период:</strong> Выберите любые даты для анализа.</p>
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.2rem;">
+                    <i class="bi bi-check2-square"></i> Включить в отчет
+                </h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div class="form-check">
+                        {{ form.include_payments(class="form-check-input", style="margin-right: 8px;") }}
+                        {{ form.include_payments.label(class="form-check-label", style="font-weight: 500; color: #2c3e50;") }}
+                    </div>
+
+                    <div class="form-check">
+                        {{ form.include_orders(class="form-check-input", style="margin-right: 8px;") }}
+                        {{ form.include_orders.label(class="form-check-label", style="font-weight: 500; color: #2c3e50;") }}
+                    </div>
+
+                    <div class="form-check">
+                        {{ form.include_feedback(class="form-check-input", style="margin-right: 8px;") }}
+                        {{ form.include_feedback.label(class="form-check-label", style="font-weight: 500; color: #2c3e50;") }}
+                    </div>
+
+                    <div class="form-check">
+                        {{ form.include_inventory(class="form-check-input", style="margin-right: 8px;") }}
+                        {{ form.include_inventory.label(class="form-check-label", style="font-weight: 500; color: #2c3e50;") }}
+                    </div>
                 </div>
             </div>
-        </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="btn" style="background: #95a5a6; padding: 12px 24px; font-size: 1rem;">
+                    <i class="bi bi-arrow-left"></i> Назад в панель
+                </a>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn" style="background: #3498db; padding: 12px 24px; font-size: 1rem;" onclick="generateReport('preview')">
+                        <i class="bi bi-eye"></i> Предпросмотр и Скачивание
+                    </button>
+
+                    {{ form.submit(class="btn", style="background: #27ae60; padding: 12px 24px; font-size: 1rem; font-weight: 600;") }}
+                </div>
+            </div>
+        </form>
     </div>
 
-    <!-- Результаты отчета -->
-    <div id="reportResults" style="display: none; margin-top: 30px;">
+    <div id="reportPreview" style="display: none; margin-top: 30px;">
         <div class="dashboard-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 id="reportTitle"></h2>
-                <button class="btn btn-success" onclick="downloadReport()">
-                    <i class="bi bi-download"></i> Скачать отчет
+            <h3 style="color: #2c3e50; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="bi bi-file-text"></i> Предпросмотр отчета</span>
+                <button class="btn btn-sm" onclick="closePreview()" style="background: #e74c3c; color: white; padding: 5px 10px;">
+                    <i class="bi bi-x"></i> Закрыть
                 </button>
+            </h3>
+
+            <div id="previewContent" style="padding: 20px; background: #f8f9fa; border-radius: 8px; min-height: 300px;">
             </div>
-            
-            <div id="reportContent">
-                <!-- Содержимое отчета будет загружено здесь -->
+
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="exportReport('html')">
+                    <i class="bi bi-file-earmark-code"></i> Экспорт в HTML
+                </button>
+                <button class="btn btn-outline" onclick="exportReport('txt')">
+                    <i class="bi bi-file-text"></i> Экспорт в TXT
+                </button>
+                <button class="btn btn-outline" onclick="exportReport('csv')">
+                    <i class="bi bi-file-spreadsheet"></i> Экспорт в CSV
+                </button>
+                <button class="btn btn-outline" onclick="exportReport('pdf')">
+                    <i class="bi bi-file-pdf"></i> Экспорт в PDF
+                </button>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_css %}
 <style>
-#customDates {
-    margin-bottom: 20px;
-}
-
-.quick-reports {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-}
-
-.quick-report-btn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 15px;
-    background: #f8f9fa;
-    border: 1px solid #eaeaea;
-    border-radius: 8px;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.quick-report-btn:hover {
-    background: #e9ecef;
+.form-control:focus {
     border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    outline: none;
 }
 
-.quick-report-btn i {
-    font-size: 1.2rem;
+.form-check-input:checked {
+    background-color: #27ae60;
+    border-color: #27ae60;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-family: inherit;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid #3498db;
     color: #3498db;
 }
 
-.quick-report-btn span {
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-.report-info {
-    color: #7f8c8d;
-    font-size: 0.9rem;
-    line-height: 1.5;
-}
-
-.report-info p {
-    margin-bottom: 10px;
-}
-
-.form-check {
-    margin-bottom: 8px;
-}
-
-.form-check-input {
-    margin-right: 8px;
-}
-
-.form-check-label {
-    color: #2c3e50;
-}
-
-#reportResults {
-    animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.report-section {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #eee;
-}
-
-.report-section h3 {
-    color: #2c3e50;
-    font-size: 1.2rem;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f0f0f0;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.stat-item {
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 20px;
-    text-align: center;
-}
-
-.stat-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #2c3e50;
-    line-height: 1;
-    margin-bottom: 5px;
-}
-
-.stat-label {
-    color: #7f8c8d;
-    font-size: 0.9rem;
+.btn-outline:hover {
+    background: #3498db;
+    color: white;
 }
 </style>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-// Показать/скрыть поля для произвольных дат
-function toggleCustomDates() {
-    const reportType = document.getElementById('reportType').value;
-    const customDates = document.getElementById('customDates');
-    
-    if (reportType === 'custom') {
-        customDates.style.display = 'grid';
-        
-        // Устанавливаем даты по умолчанию
-        const today = new Date().toISOString().split('T')[0];
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-        const oneMonthAgoStr = oneMonthAgo.toISOString().split('T')[0];
-        
-        document.getElementById('startDate').value = oneMonthAgoStr;
-        document.getElementById('endDate').value = today;
-    } else {
-        customDates.style.display = 'none';
-    }
-}
+document.addEventListener('DOMContentLoaded', function() {
+    const reportType = document.getElementById('report_type');
+    const dateRangeGroup = document.getElementById('dateRangeGroup');
 
-// Быстрая генерация отчета
-function generateQuickReport(type) {
-    document.getElementById('reportType').value = type;
-    generateReport();
-}
-
-// Показать последний отчет
-function showLastReport() {
-    showAlert('Функция показа последнего отчета будет реализована позже', 'info');
-}
-
-// Генерация отчета
-function generateReport() {
-    const reportType = document.getElementById('reportType').value;
-    const reportFormat = document.getElementById('reportFormat').value;
-    
-    let startDate, endDate;
-    
-    if (reportType === 'custom') {
-        startDate = document.getElementById('startDate').value;
-        endDate = document.getElementById('endDate').value;
-        
-        if (!startDate || !endDate) {
-            showAlert('Пожалуйста, выберите даты для произвольного периода', 'warning');
-            return;
-        }
-        
-        if (new Date(startDate) > new Date(endDate)) {
-            showAlert('Начальная дата не может быть позже конечной', 'warning');
-            return;
+    function updateDateVisibility() {
+        if (reportType.value === 'custom') {
+            dateRangeGroup.style.display = 'block';
+        } else {
+            dateRangeGroup.style.display = 'none';
         }
     }
-    
-    const includeOrders = document.getElementById('includeOrders').checked;
-    const includeUsers = document.getElementById('includeUsers').checked;
-    const includeSupply = document.getElementById('includeSupply').checked;
-    const includePopular = document.getElementById('includePopular').checked;
-    
-    // Показываем загрузку
-    showAlert('Генерация отчета...', 'info');
-    
+
+    reportType.addEventListener('change', updateDateVisibility);
+    updateDateVisibility();
+});
+
+function generateReport(action) {
+    const form = document.getElementById('reportForm');
+    const formData = new FormData(form);
+
+    // Преобразуем FormData в объект
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+
     fetch('/admin/api/report/generate', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            report_type: reportType,
-            start_date: startDate,
-            end_date: endDate,
-            include_orders: includeOrders,
-            include_users: includeUsers,
-            include_supply: includeSupply,
-            include_popular: includePopular
-        })
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            showAlert('Отчет успешно сгенерирован!', 'success');
-            displayReport(result.report, result.download_url);
+            if (action === 'preview') {
+                showReportPreview(result.report);
+            } else {
+                // Если нужно сохранить отчет
+                alert('Отчет успешно сгенерирован!');
+                // Перенаправляем на страницу скачивания
+                if (result.download_url) {
+                    window.open(result.download_url, '_blank');
+                }
+            }
         } else {
-            showAlert(result.error, 'danger');
+            alert('Ошибка: ' + result.error);
         }
     })
     .catch(error => {
-        showAlert('Ошибка сети: ' + error.message, 'danger');
+        alert('Ошибка сети: ' + error.message);
     });
 }
 
-// Отображение отчета
-function displayReport(report, downloadUrl) {
-    document.getElementById('reportTitle').textContent = report.title;
-    
+function showReportPreview(report) {
+    const previewContent = document.getElementById('previewContent');
+
     let html = `
-        <div class="report-section">
-            <h3>Общая информация</h3>
-            <div style="color: #7f8c8d; margin-bottom: 15px;">
-                <div><strong>Период:</strong> ${report.period.start_date} - ${report.period.end_date} (${report.period.days} дней)</div>
-                <div><strong>Сгенерирован:</strong> ${report.generated_at} пользователем ${report.generated_by}</div>
-            </div>
-        </div>
-    `;
-    
-    // Статистика заказов
-    html += `
-        <div class="report-section">
-            <h3>Заказы и продажи</h3>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-value">${report.orders.total}</div>
-                    <div class="stat-label">Всего заказов</div>
+        <h4 style="color: #2c3e50; margin-bottom: 15px;">${report.title}</h4>
+        <p><strong>Период:</strong> ${report.period.start_date} - ${report.period.end_date} (${report.period.days} дней)</p>
+        <p><strong>Сгенерирован:</strong> ${report.generated_at} пользователем ${report.generated_by}</p>
+
+        <div style="margin-top: 20px;">
+            <h5 style="color: #2c3e50; margin-bottom: 10px;">Заказы</h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="background: #e8f4fc; padding: 15px; border-radius: 6px;">
+                    <strong>Всего:</strong> ${report.orders.total}<br>
+                    <strong>Оплачено:</strong> ${report.orders.paid}<br>
+                    <strong>Получено:</strong> ${report.orders.received}
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value">${report.orders.paid}</div>
-                    <div class="stat-label">Оплаченных</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${report.orders.received}</div>
-                    <div class="stat-label">Полученных</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${report.orders.revenue.toFixed(2)} ₽</div>
-                    <div class="stat-label">Выручка</div>
+                <div style="background: #e8f4fc; padding: 15px; border-radius: 6px;">
+                    <strong>Выручка:</strong> ${report.orders.revenue.toFixed(2)} ₽
                 </div>
             </div>
-        </div>
-    `;
-    
-    // Статистика пользователей
-    html += `
-        <div class="report-section">
-            <h3>Пользователи</h3>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-value">${report.users.total}</div>
-                    <div class="stat-label">Всего пользователей</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${report.users.active}</div>
-                    <div class="stat-label">Активных в период</div>
-                </div>
+
+            <h5 style="color: #2c3e50; margin-bottom: 10px;">Пользователи</h5>
+            <div style="background: #f0f8f0; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <strong>Всего пользователей:</strong> ${report.users.total}<br>
+                <strong>Активных в период:</strong> ${report.users.active}
             </div>
-        </div>
-    `;
-    
-    // Статистика заявок на закупку
-    html += `
-        <div class="report-section">
-            <h3>Заявки на закупку</h3>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-value">${report.supply_requests.total}</div>
-                    <div class="stat-label">Всего заявок</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${report.supply_requests.approved}</div>
-                    <div class="stat-label">Утверждено</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${report.supply_requests.pending}</div>
-                    <div class="stat-label">Ожидает</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${report.supply_requests.rejected || 0}</div>
-                    <div class="stat-label">Отклонено</div>
-                </div>
+
+            <h5 style="color: #2c3e50; margin-bottom: 10px;">Заявки на поставку</h5>
+            <div style="background: #fff8e1; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <strong>Всего заявок:</strong> ${report.supply_requests.total}<br>
+                <strong>Утверждено:</strong> ${report.supply_requests.approved}<br>
+                <strong>Ожидают:</strong> ${report.supply_requests.pending}<br>
+                <strong>Отклонено:</strong> ${report.supply_requests.rejected}
             </div>
-        </div>
     `;
-    
-    // Популярные блюда
+
     if (report.popular_dishes && report.popular_dishes.length > 0) {
         html += `
-            <div class="report-section">
-                <h3>Популярные блюда</h3>
-                <div style="overflow-x: auto;">
-                    <table class="admin-table" style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Блюдо</th>
-                                <th>Заказов</th>
-                                <th>Порций</th>
-                                <th>Выручка</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+            <h5 style="color: #2c3e50; margin-bottom: 10px;">Популярные блюда</h5>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd;">Блюдо</th>
+                            <th style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd;">Заказов</th>
+                            <th style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd;">Порций</th>
+                            <th style="background: #f8f9fa; padding: 10px; border: 1px solid #ddd;">Выручка</th>
+                        </tr>
+                    </thead>
+                    <tbody>
         `;
-        
+
         report.popular_dishes.forEach(dish => {
             html += `
                 <tr>
-                    <td>${dish.name}</td>
-                    <td>${dish.orders_count}</td>
-                    <td>${dish.total_quantity}</td>
-                    <td>${dish.revenue.toFixed(2)} ₽</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${dish.name}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${dish.orders_count}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${dish.total_quantity}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${dish.revenue.toFixed(2)} ₽</td>
                 </tr>
             `;
         });
-        
+
         html += `
-                        </tbody>
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
         `;
     }
-    
-    document.getElementById('reportContent').innerHTML = html;
-    document.getElementById('reportResults').style.display = 'block';
-    
-    // Сохраняем URL для скачивания
-    document.getElementById('reportResults').dataset.downloadUrl = downloadUrl;
-    
-    // Прокручиваем к результатам
-    document.getElementById('reportResults').scrollIntoView({ behavior: 'smooth' });
+
+    html += `</div>`;
+
+    previewContent.innerHTML = html;
+    document.getElementById('reportPreview').style.display = 'block';
 }
 
-// Скачивание отчета
-function downloadReport() {
-    const downloadUrl = document.getElementById('reportResults').dataset.downloadUrl;
-    if (downloadUrl) {
-        window.open(downloadUrl, '_blank');
-    } else {
-        showAlert('URL для скачивания не найден', 'warning');
-    }
+function closePreview() {
+    document.getElementById('reportPreview').style.display = 'none';
 }
 
-// Инициализация
-document.addEventListener('DOMContentLoaded', function() {
-    toggleCustomDates();
-});
+function exportReport(format) {
+    const form = document.getElementById('reportForm');
+    const formData = new FormData(form);
+
+    const params = new URLSearchParams();
+    formData.forEach((value, key) => {
+        params.append(key, value);
+    });
+    params.append('format', format);
+
+    window.open(`/admin/api/report/export?${params.toString()}`, '_blank');
+}
 </script>
 {% endblock %}

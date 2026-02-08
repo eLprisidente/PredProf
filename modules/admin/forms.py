@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 
 
 class ReportForm(FlaskForm):
-    """Форма генерации отчета"""
     report_type = SelectField('Тип отчета', choices=[
         ('daily', 'Ежедневный'),
         ('weekly', 'Еженедельный'),
@@ -25,7 +24,6 @@ class ReportForm(FlaskForm):
 
 
 class ApprovalForm(FlaskForm):
-    """Форма согласования заявки"""
     status = SelectField('Решение', choices=[
         ('approved', 'Утвердить'),
         ('rejected', 'Отклонить')
@@ -40,7 +38,6 @@ class ApprovalForm(FlaskForm):
 
 
 class UserManagementForm(FlaskForm):
-    """Форма управления пользователями"""
     action = SelectField('Действие', choices=[
         ('activate', 'Активировать'),
         ('deactivate', 'Деактивировать'),

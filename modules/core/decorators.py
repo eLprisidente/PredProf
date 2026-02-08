@@ -5,7 +5,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 def handle_db_errors(func):
-    """Декоратор для обработки ошибок базы данных"""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -20,7 +19,6 @@ def handle_db_errors(func):
 
 
 def role_required(role):
-    """Декоратор для проверки роли"""
 
     def decorator(func):
         @wraps(func)

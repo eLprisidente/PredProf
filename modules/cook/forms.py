@@ -7,7 +7,6 @@ from decimal import Decimal
 
 
 class SupplyRequestForm(FlaskForm):
-    """Форма заявки на поставку продуктов"""
     product_name = StringField('Название продукта', validators=[
         DataRequired(message='Название продукта обязательно'),
         Length(min=2, max=100, message='Название должно быть от 2 до 100 символов')
@@ -43,7 +42,6 @@ class SupplyRequestForm(FlaskForm):
 
 
 class InventoryUpdateForm(FlaskForm):
-    """Форма обновления инвентаря"""
     current_quantity = FloatField('Текущее количество', validators=[
         DataRequired(message='Укажите количество'),
         NumberRange(min=0, max=100000, message='Количество должно быть от 0 до 100000')
@@ -61,7 +59,6 @@ class InventoryUpdateForm(FlaskForm):
 
 
 class InventoryItemForm(FlaskForm):
-    """Форма добавления нового продукта в инвентарь"""
     product_name = StringField('Название продукта', validators=[
         DataRequired(message='Название продукта обязательно'),
         Length(min=2, max=100, message='Название должно быть от 2 до 100 символов')
@@ -105,7 +102,6 @@ class InventoryItemForm(FlaskForm):
 
 
 class MenuItemForm(FlaskForm):
-    """Форма добавления/редактирования блюда в меню"""
     name = StringField('Название блюда', validators=[
         DataRequired(message='Название блюда обязательно'),
         Length(min=2, max=100, message='Название должно быть от 2 до 100 символов')

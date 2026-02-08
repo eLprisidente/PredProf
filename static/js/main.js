@@ -1,4 +1,3 @@
-// Flash messages auto-close
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-close flash messages
     const flashMessages = document.querySelectorAll('.flash');
@@ -10,7 +9,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     });
 
-    // Close button for flash messages
     document.querySelectorAll('.flash-close').forEach(button => {
         button.addEventListener('click', function() {
             const flash = this.closest('.flash');
@@ -20,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Avatar upload preview
     const avatarInput = document.querySelector('#avatar');
     const avatarPreview = document.querySelector('.avatar-img');
 
@@ -37,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Form validation
     const forms = document.querySelectorAll('form[novalidate]');
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
@@ -60,7 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Active nav link highlighting
     const currentPath = window.location.pathname;
     const navLinks = document.querySelectorAll('.nav-link');
 
@@ -73,19 +68,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Обработка кнопок переключения доступности
 document.querySelectorAll('.toggle-availability-btn').forEach(button => {
     button.addEventListener('click', function() {
         const itemId = this.getAttribute('data-item-id');
         const button = this;
         const badge = document.getElementById('availability-' + itemId);
 
-        // Показываем индикатор загрузки
         const originalText = button.innerHTML;
         button.innerHTML = '<i class="bi bi-hourglass-split"></i> Загрузка...';
         button.disabled = true;
 
-        // Отправляем POST запрос на сервер
         fetch(`/cook/menu/${itemId}/toggle`, {
             method: 'POST',
             headers: {
@@ -96,24 +88,20 @@ document.querySelectorAll('.toggle-availability-btn').forEach(button => {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Обновляем бейдж доступности
                 if (data.available) {
                     badge.className = 'availability-badge available';
                     badge.innerHTML = '<i class="bi bi-check-circle"></i> Доступно';
 
-                    // Обновляем кнопку
                     button.innerHTML = '<i class="bi bi-power"></i> Отключить';
                     button.style.background = '#f39c12';
                 } else {
                     badge.className = 'availability-badge unavailable';
                     badge.innerHTML = '<i class="bi bi-x-circle"></i> Недоступно';
 
-                    // Обновляем кнопку
                     button.innerHTML = '<i class="bi bi-power"></i> Включить';
                     button.style.background = '#27ae60';
                 }
 
-                // Показываем уведомление
                 showToast('success', data.message);
             } else {
                 showToast('error', data.message);
@@ -131,9 +119,7 @@ document.querySelectorAll('.toggle-availability-btn').forEach(button => {
     });
 });
 
-// Функция для показа уведомлений
 function showToast(type, message) {
-    // Создаем контейнер для тостов, если его нет
     let toastContainer = document.getElementById('toast-container');
     if (!toastContainer) {
         toastContainer = document.createElement('div');
@@ -142,7 +128,6 @@ function showToast(type, message) {
         document.body.appendChild(toastContainer);
     }
 
-    // Создаем тост
     const toast = document.createElement('div');
     toast.style.cssText = `
         background: ${type === 'success' ? '#27ae60' : '#e74c3c'};
@@ -165,7 +150,6 @@ function showToast(type, message) {
 
     toastContainer.appendChild(toast);
 
-    // Удаляем тост через 3 секунды
     setTimeout(() => {
         toast.style.animation = 'slideOut 0.3s ease-in';
         setTimeout(() => {
@@ -173,7 +157,6 @@ function showToast(type, message) {
         }, 300);
     }, 3000);
 
-    // Добавляем стили для анимации если их нет
     if (!document.getElementById('toast-animations')) {
         const style = document.createElement('style');
         style.id = 'toast-animations';

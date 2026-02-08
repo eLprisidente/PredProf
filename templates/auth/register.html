@@ -8,7 +8,7 @@
         <h1><i class="bi bi-person-plus"></i> Регистрация</h1>
         <p>Создайте новый аккаунт</p>
 
-        <form method="POST" action="{{ url_for('auth.register') }}">
+        <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm">
             {{ form.hidden_tag() }}
 
             <div class="form-group">
@@ -31,9 +31,12 @@
                 {% endfor %}
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="class_group_container">
                 {{ form.class_group.label(class="form-label") }}
-                {{ form.class_group(class="form-control", placeholder="10А") }}
+                {{ form.class_group(class="form-control", placeholder="10А", id="class_group_field") }}
+                <small style="color: #7f8c8d; font-size: 0.85rem; display: block; margin-top: 5px;">
+                    <i class="bi bi-info-circle"></i> Только для учеников
+                </small>
                 {% for error in form.class_group.errors %}
                 <div style="color: #e74c3c; font-size: 0.85rem; margin-top: 5px;">
                     <i class="bi bi-exclamation-triangle"></i> {{ error }}
@@ -43,7 +46,7 @@
 
             <div class="form-group">
                 {{ form.role.label(class="form-label") }}
-                {{ form.role(class="form-control") }}
+                {{ form.role(class="form-control", id="role_select") }}
                 <small style="color: #7f8c8d; font-size: 0.85rem; display: block; margin-top: 5px;">
                     <i class="bi bi-info-circle"></i> Выберите роль пользователя
                 </small>
@@ -79,4 +82,145 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleSelect = document.getElementById('role_select');
+    const classGroupField = document.getElementById('class_group_field');
+    const classGroupContainer = document.getElementById('class_group_container');
+    const classGroupLabel = classGroupContainer.querySelector('label');
+
+    // Функция для обновления видимости поля класса
+    function updateClassFieldVisibility() {
+        const selectedRole = roleSelect.value;
+
+        if (selectedRole === 'student') {
+            // Показываем поле класса для ученика
+            classGroupContainer.style.display = 'block';
+            classGroupField.required = true;
+            classGroupLabel.innerHTML = 'Класс *';
+        } else {
+            // Скрываем поле класса для повара и админа
+            classGroupContainer.style.display = 'none';
+            classGroupField.required = false;
+            classGroupField.value = '';
+            classGroupLabel.innerHTML = 'Класс';
+        }
+    }
+
+    // Обновляем при загрузке страницы
+    updateClassFieldVisibility();
+
+    // Обновляем при изменении выбора роли
+    roleSelect.addEventListener('change', updateClassFieldVisibility);
+});
+</script>
+
+<style>
+.auth-container {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+.auth-card h1 {
+    color: #2c3e50;
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.auth-card p {
+    color: #7f8c8d;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    outline: none;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 14px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 10px;
+}
+
+.auth-btn:hover {
+    background: #219653;
+}
+
+.auth-links {
+    margin-top: 25px;
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.auth-links a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-links a:hover {
+    text-decoration: underline;
+}
+
+/* Анимация для скрытия/показа */
+#class_group_container {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+#class_group_container[style*="display: none"] {
+    opacity: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+
+/* Убираем маргин, когда скрыто */
+#class_group_container:not([style*="display: none"]) {
+    opacity: 1;
+    height: auto;
+}
+</style>
 {% endblock %}

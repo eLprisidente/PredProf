@@ -5,41 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Школьная столовая - {% block title %}Главная{% endblock %}</title>
 
-    <!-- Основные стили -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-    <!-- Стили календаря -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/calendar.css') }}">
 
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 
     <style>
-        /* Просто сдвигаем логотип левее */
         .nav-container {
-            padding: 0 10px !important; /* Уменьшаем отступы по бокам */
+            padding: 0 10px !important;
         }
 
         .logo {
-            margin-right: auto !important; /* Автоматический отступ справа - сдвигаем все остальное вправо */
-            flex-shrink: 0; /* Не даем сжиматься */
+            margin-right: auto !important;
+            flex-shrink: 0;
         }
 
-        /* Если все еще не хватает места - немного уменьшаем кнопки для админа */
         .nav-links a {
-            padding: 8px 12px !important; /* Немного меньше отступов */
+            padding: 8px 12px !important;
             font-size: 0.9rem !important;
         }
 
-        /* Стили для навбара повара */
         .nav-orders {
             position: relative;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .nav-orders .badge-container {
+            position: relative;
+            display: inline-block;
         }
 
         .nav-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             background: #e74c3c;
             color: white;
             font-size: 0.7rem;
@@ -47,13 +49,46 @@
             border-radius: 10px;
             font-weight: 600;
             min-width: 18px;
+            height: 18px;
             text-align: center;
             border: 2px solid #2c3e50;
+            margin-left: 5px;
+            vertical-align: middle;
         }
 
-        /* На очень узких экранах можно скрыть текст кнопок */
+        .nav-cart .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #e74c3c;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+            min-width: 18px;
+            height: 18px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+            min-width: 18px;
+            height: 18px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
         @media (max-width: 1200px) {
-            .nav-links a span:not(.badge) {
+            .nav-links a span:not(.badge):not(.nav-badge) {
                 display: none;
             }
 
@@ -67,9 +102,12 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
+
+            .nav-badge, .badge {
+                display: inline-flex !important;
+            }
         }
 
-        /* На телефонах скрываем текст логотипа */
         @media (max-width: 768px) {
             .logo span {
                 display: none;
@@ -81,6 +119,13 @@
 
             .user-info span:not(small) {
                 max-width: 60px;
+            }
+
+            .nav-badge, .badge {
+                font-size: 0.6rem;
+                padding: 1px 4px;
+                min-width: 16px;
+                height: 16px;
             }
         }
     </style>
@@ -118,7 +163,6 @@
                                 <i class="bi bi-receipt"></i> Заказы
                             </a>
 
-                            <!-- Кнопка корзины -->
                             <a href="{{ url_for('user.view_cart') }}" class="nav-cart {% if request.endpoint == 'user.view_cart' %}active{% endif %}">
                                 <i class="bi bi-cart3"></i> Корзина
                                 {% if cart_count and cart_count > 0 %}
@@ -134,7 +178,7 @@
                             <a href="{{ url_for('cook.cook_dashboard') }}" class="{% if request.endpoint == 'cook.cook_dashboard' %}active{% endif %}">
                                 <i class="bi bi-speedometer2"></i> Панель
                             </a>
-                            <a href="{{ url_for('cook.manage_orders') }}" class="nav-orders">
+                            <a href="{{ url_for('cook.manage_orders') }}" class="nav-orders {% if request.endpoint == 'cook.manage_orders' %}active{% endif %}">
                                 <i class="bi bi-receipt"></i> Заказы
                                 {% if cook_total_active > 0 %}
                                 <span class="nav-badge" id="cook-orders-badge">{{ cook_total_active }}</span>
@@ -208,20 +252,15 @@
     </main>
 
     <footer>
-        <p>Система управления школьной столовой © 2024</p>
+        <p>Система управления школьной столовой</p>
     </footer>
 
-    <!-- Основной скрипт -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
-    <!-- Скрипт календаря -->
     <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
 
-    <!-- Скрипт для обновления навбара повара -->
     <script>
-    // Функция обновления счетчиков в навбаре
     function updateNavbarCounts() {
-        // Проверяем, является ли пользователь поваром
         {% if current_user.is_authenticated and current_user.role == 'cook' %}
         fetch('/cook/api/order-counts')
         .then(response => response.json())
@@ -229,12 +268,11 @@
             if (data.success) {
                 const counts = data.counts;
 
-                // Обновляем бейдж с общим количеством
                 const totalBadge = document.getElementById('cook-orders-badge');
                 if (totalBadge) {
                     if (counts.total > 0) {
                         totalBadge.textContent = counts.total;
-                        totalBadge.style.display = 'inline-block';
+                        totalBadge.style.display = 'inline-flex';
                     } else {
                         totalBadge.style.display = 'none';
                     }
@@ -247,10 +285,8 @@
         {% endif %}
     }
 
-    // Автоматическое обновление счетчиков каждые 30 секунд
     setInterval(updateNavbarCounts, 30000);
 
-    // Обновляем при загрузке страницы
     document.addEventListener('DOMContentLoaded', function() {
         updateNavbarCounts();
     });
@@ -258,7 +294,6 @@
 
     {% block extra_js %}{% endblock %}
 
-    <!-- Контейнер для тостов -->
     <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 </body>
 </html>

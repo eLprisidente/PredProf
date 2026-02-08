@@ -19,7 +19,6 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
 
         if user and check_password_hash(user.password, form.password.data):
-            # Исправлено: form.remember_me.data вместо form.remember.data
             login_user(user, remember=form.remember_me.data)
             flash(f'Добро пожаловать, {user.full_name}!', 'success')
 
@@ -53,19 +52,36 @@ def register():
             method='pbkdf2:sha256'
         )
 
+        # Определяем значение для class_group в зависимости от роли
+        class_group_value = None
+        if form.role.data == 'student':
+            # Для ученика - берем из формы
+            class_group_value = form.class_group.data.strip() if form.class_group.data else None
+        else:
+            # Для повара и админа - None
+            class_group_value = None
+
         user = User(
             email=form.email.data,
             password=hashed_password,
             role=form.role.data,
             full_name=form.full_name.data,
-            class_group=form.class_group.data if form.role.data == 'student' else None
+            class_group=class_group_value,
+            balance=0.0,
+            is_active=True
         )
 
-        db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.add(user)
+            db.session.commit()
 
-        flash('Регистрация успешна! Теперь войдите в систему.', 'success')
-        return redirect(url_for('auth.login'))
+            flash('Регистрация успешна! Теперь войдите в систему.', 'success')
+            return redirect(url_for('auth.login'))
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Ошибка при регистрации: {e}")
+            flash('Ошибка при регистрации. Попробуйте снова.', 'danger')
 
     return render_template('auth/register.html', form=form)
 

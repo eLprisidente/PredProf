@@ -11,7 +11,6 @@
         <p style="color: #7f8c8d; font-size: 1rem;">Аналитика по оплатам, заказам и посещаемости</p>
     </div>
 
-    <!-- Основная статистика -->
     <div class="dashboard-grid">
         <div class="dashboard-column">
             <div class="dashboard-card">
@@ -40,7 +39,6 @@
         </div>
     </div>
 
-    <!-- Детальная статистика -->
     <div class="dashboard-card" style="margin-top: 30px;">
         <h2><i class="bi bi-graph-up"></i> Статистика за последние 7 дней</h2>
 
@@ -74,7 +72,6 @@
         {% endif %}
     </div>
 
-    <!-- Популярные блюда -->
     {% if popular_dishes %}
     <div class="dashboard-card" style="margin-top: 30px;">
         <h2><i class="bi bi-egg-fried"></i> Популярные блюда</h2>
@@ -103,7 +100,6 @@
     </div>
     {% endif %}
 
-    <!-- Навигация назад -->
     <div style="margin-top: 30px;">
         <a href="{{ url_for('admin.admin_dashboard') }}" class="btn">
             <i class="bi bi-arrow-left"></i> Назад в панель управления

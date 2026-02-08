@@ -11,7 +11,6 @@
         <p style="color: #7f8c8d; font-size: 1rem;">Выберите блюда на сегодня</p>
     </div>
 
-    <!-- Если меню пустое -->
     {% if not breakfast_items and not lunch_items %}
     <div class="dashboard-card" style="text-align: center; padding: 60px 20px;">
         <div style="margin-bottom: 25px;">
@@ -19,13 +18,9 @@
         </div>
         <h3 style="color: #2c3e50; margin-bottom: 10px; font-size: 1.3rem;">Меню не доступно</h3>
         <p style="color: #7f8c8d; margin-bottom: 25px; font-size: 1rem;">На сегодня меню еще не готово</p>
-        <a href="{{ url_for('user.dashboard') }}" class="btn btn-primary" style="padding: 10px 25px; font-size: 1rem;">
-            <i class="bi bi-house"></i> На главную
-        </a>
     </div>
     {% endif %}
 
-    <!-- Завтраки -->
     {% if breakfast_items %}
     <div class="dashboard-card" style="margin-bottom: 30px;">
         <h2 style="color: #2c3e50; font-size: 1.5rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
@@ -36,7 +31,6 @@
         <div class="menu-items-grid">
             {% for item in breakfast_items %}
             <div class="menu-item-card">
-                <!-- Блок с изображением -->
                 <div class="menu-item-image">
                     {% if item.image_url %}
                     <img src="{{ url_for('static', filename='uploads/menu_items/' + item.image_url) }}"
@@ -92,7 +86,6 @@
     </div>
     {% endif %}
 
-    <!-- Обеды -->
     {% if lunch_items %}
     <div class="dashboard-card" style="margin-bottom: 30px;">
         <h2 style="color: #2c3e50; font-size: 1.5rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
@@ -103,7 +96,6 @@
         <div class="menu-items-grid">
             {% for item in lunch_items %}
             <div class="menu-item-card">
-                <!-- Блок с изображением -->
                 <div class="menu-item-image">
                     {% if item.image_url %}
                     <img src="{{ url_for('static', filename='uploads/menu_items/' + item.image_url) }}"
@@ -159,7 +151,6 @@
     </div>
     {% endif %}
 
-    <!-- Навигация -->
     <div class="row" style="margin-top: 30px;">
         <div class="col-md-6">
             <a href="{{ url_for('user.view_cart') }}" class="btn btn-primary" style="width: 100%; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">

@@ -5,12 +5,8 @@ from modules.core.models import User, MenuItem, Inventory, Subscription, Order, 
 
 
 def seed_database():
-    """Заполнение базы тестовыми данными"""
-
-    print("Заполнение базы данных тестовыми данными...")
 
     if User.query.count() == 0:
-        print("Создаем тестовых пользователей...")
 
         admin = User(
             email='admin@school.ru',
@@ -30,30 +26,12 @@ def seed_database():
 
         students = [
             User(
-                email='student1@school.ru',
+                email='student@school.ru',
                 password=generate_password_hash('student123', method='pbkdf2:sha256'),
                 role='student',
                 full_name='Петров Петр Петрович',
-                class_group='10А',
+                class_group='11Л',
                 allergies='Глютен, лактоза',
-                is_active=True
-            ),
-            User(
-                email='student2@school.ru',
-                password=generate_password_hash('student123', method='pbkdf2:sha256'),
-                role='student',
-                full_name='Сидорова Анна Ивановна',
-                class_group='9Б',
-                allergies='Орехи, мед',
-                is_active=True
-            ),
-            User(
-                email='student3@school.ru',
-                password=generate_password_hash('student123', method='pbkdf2:sha256'),
-                role='student',
-                full_name='Козлов Алексей Сергеевич',
-                class_group='11В',
-                allergies='Рыба, цитрусовые',
                 is_active=True
             )
         ]
@@ -64,13 +42,10 @@ def seed_database():
             db.session.add(student)
 
         db.session.commit()
-        print("Пользователи созданы")
 
     if MenuItem.query.count() == 0:
-        print("Создаем тестовое меню...")
 
         menu_items = [
-            # Завтраки
             MenuItem(
                 name='Овсяная каша с ягодами',
                 description='Полезная овсянка со свежими ягодами и медом',
@@ -108,7 +83,6 @@ def seed_database():
                 available=True
             ),
 
-            # Обеды
             MenuItem(
                 name='Куриный суп с лапшой',
                 description='Наваристый суп с курицей, овощами и домашней лапшой',
@@ -169,10 +143,8 @@ def seed_database():
             db.session.add(item)
 
         db.session.commit()
-        print("Меню создано")
 
     if Inventory.query.count() == 0:
-        print("Создаем тестовый инвентарь...")
 
         inventory_items = [
             Inventory(product_name='Картофель', current_quantity=50, min_quantity=10, unit='кг', category='овощи'),
@@ -198,11 +170,9 @@ def seed_database():
             db.session.add(item)
 
         db.session.commit()
-        print("Инвентарь создан")
 
     students = User.query.filter_by(role='student').all()
     if students and Subscription.query.count() == 0:
-        print("Создаем тестовые абонементы...")
 
         for i, student in enumerate(students):
             subscription_type = 'weekly' if i % 2 == 0 else 'monthly'
@@ -224,10 +194,8 @@ def seed_database():
             db.session.add(subscription)
 
         db.session.commit()
-        print("Абонементы созданы")
 
     if Order.query.count() == 0:
-        print("Создаем тестовые заказы...")
 
         students = User.query.filter_by(role='student').all()
         menu_items = MenuItem.query.all()
@@ -276,10 +244,8 @@ def seed_database():
                 db.session.add(order)
 
             db.session.commit()
-            print("Заказы созданы")
 
     if Feedback.query.count() == 0:
-        print("Создаем тестовые отзывы...")
 
         orders = Order.query.all()
 
@@ -295,10 +261,8 @@ def seed_database():
                 db.session.add(feedback)
 
             db.session.commit()
-            print("Отзывы созданы")
 
     if SupplyRequest.query.count() == 0:
-        print("Создаем тестовые заявки на поставку...")
 
         cook = User.query.filter_by(role='cook').first()
 
@@ -341,10 +305,3 @@ def seed_database():
                 db.session.add(request)
 
             db.session.commit()
-            print("Заявки на поставку созданы")
-
-    print("База данных успешно заполнена тестовыми данными!")
-    print("Тестовые аккаунты:")
-    print("  Админ: admin@school.ru / admin123")
-    print("  Повар: cook@school.ru / cook123")
-    print("  Ученики: student1-3@school.ru / student123")
