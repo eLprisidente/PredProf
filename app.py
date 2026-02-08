@@ -6,6 +6,8 @@ from sqlalchemy import text
 import traceback
 from datetime import datetime, date
 
+from flask_wtf.csrf import generate_csrf
+
 app = Flask(__name__,
             template_folder='templates',
             static_folder='static',
@@ -13,7 +15,6 @@ app = Flask(__name__,
 login_manager = LoginManager()
 
 try:
-    # Пытаемся загрузить конфигурацию из instance/config.py
     app.config.from_pyfile('config.py')
 except Exception as e:
     print(f"{e}")
@@ -23,19 +24,18 @@ except Exception as e:
     app.config['DEBUG'] = True
     app.config['UPLOAD_FOLDER'] = 'static/uploads'
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+    app.config['WTF_CSRF_ENABLED'] = True  # Включаем CSRF
 
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Пожалуйста, войдите в систему для доступа к этой странице.'
 login_manager.login_message_category = 'info'
 
-# Импортируем БД
 from modules.core.database import db
 
 db.init_app(app)
 
 
-# Загрузчик пользователя должен быть объявлен ДО импорта моделей
 @login_manager.user_loader
 def load_user(user_id):
     try:
@@ -46,10 +46,8 @@ def load_user(user_id):
         return None
 
 
-# Создаем необходимые папки при инициализации приложения
 with app.app_context():
     try:
-        # Создаем необходимые папки
         folders = [
             'instance',
             'static/uploads/avatars',
@@ -62,7 +60,6 @@ with app.app_context():
             os.makedirs(folder, exist_ok=True)
             print(f"{folder}")
 
-        # Создаем файл __init__.py в папке services если его нет
         services_init_path = 'modules/core/services/__init__.py'
         if not os.path.exists(services_init_path):
             with open(services_init_path, 'w', encoding='utf-8') as f:
@@ -72,7 +69,6 @@ with app.app_context():
         print(f"{e}")
         traceback.print_exc()
 
-# Импортируем Blueprint'ы
 try:
     from modules.auth.routes import auth_bp
     from modules.user.routes import user_bp
@@ -89,54 +85,73 @@ except ImportError as e:
     traceback.print_exc()
     sys.exit(1)
 
-# Импортируем функцию для корзины
 from modules.user.routes import get_cart_count
 
 
 @app.context_processor
 def inject_cart_count():
-    """Добавить cart_count во все шаблоны"""
     return {'cart_count': get_cart_count()}
 
 
 @app.context_processor
 def inject_now():
-    """Добавить текущую дату во все шаблоны"""
     return {'now': datetime.utcnow()}
 
-@app.context_processor
-def inject_csrf_token():
-    """Добавить CSRF токен для AJAX запросов"""
-    from flask_wtf.csrf import generate_csrf
-    return {'csrf_token': generate_csrf}
-
-@app.context_processor
-def inject_now():
-    """Добавить текущую дату во все шаблоны"""
-    return {'now': datetime.utcnow()}
 
 @app.context_processor
 def inject_today():
-    """Добавить сегодняшнюю дату во все шаблоны"""
     return {'today': date.today()}
 
 
 @app.context_processor
+def inject_csrf_token():
+    try:
+        def get_csrf_token():
+            return generate_csrf()
+        return {'csrf_token': get_csrf_token}
+    except Exception as e:
+        print(f"Ошибка в inject_csrf_token: {e}")
+        return {'csrf_token': lambda: ''}
+
+
+@app.context_processor
+def inject_subscription_info():
+    if current_user.is_authenticated:
+        try:
+            from modules.user.services import SubscriptionService
+            active_subscription = SubscriptionService.get_active_subscription(current_user.id)
+            return {
+                'active_subscription': active_subscription,
+                'has_active_subscription': active_subscription is not None,
+                'day_price': SubscriptionService.DAY_PRICE
+            }
+        except Exception as e:
+            print(f"Ошибка получения информации об абонементе: {e}")
+            return {
+                'active_subscription': None,
+                'has_active_subscription': False,
+                'day_price': 150.0
+            }
+    return {
+        'active_subscription': None,
+        'has_active_subscription': False,
+        'day_price': 150.0
+    }
+
+
+@app.context_processor
 def inject_order_counts():
-    """Добавить счетчики заказов для повара"""
     from datetime import date
 
     if current_user.is_authenticated and current_user.role == 'cook':
         try:
             from modules.core.models import Order
 
-            # Заказы на сегодня
             today_orders = Order.query.filter(
                 Order.order_date == date.today(),
                 Order.status.in_(['pending', 'preparing', 'ready'])
             ).all()
 
-            # Счетчики
             total_active = len(today_orders)
 
             return {
@@ -148,7 +163,6 @@ def inject_order_counts():
                 'cook_total_active': 0
             }
 
-    # Для администратора - счетчик заявок
     elif current_user.is_authenticated and current_user.role == 'admin':
         try:
             from modules.core.models import SupplyRequest
@@ -164,7 +178,6 @@ def inject_order_counts():
                 'pending_requests_count': 0
             }
 
-    # Для повара - счетчик заявок
     elif current_user.is_authenticated and current_user.role == 'cook':
         try:
             from modules.core.models import SupplyRequest
@@ -187,20 +200,7 @@ def inject_order_counts():
 
 
 @app.context_processor
-def inject_now():
-    """Добавить текущую дату и время во все шаблоны"""
-    return {'now': datetime.utcnow()}
-
-
-@app.context_processor
-def inject_now():
-    """Добавить текущую дату во все шаблоны"""
-    return {'today': datetime.utcnow().date()}
-
-
-@app.context_processor
 def inject_pending_counts():
-    """Добавить счетчики ожидающих заявок и заказов"""
     if current_user.is_authenticated:
         if current_user.role == 'cook':
             from modules.core.models import SupplyRequest, Order
@@ -231,7 +231,6 @@ def inject_pending_counts():
 
 @app.context_processor
 def inject_pending_requests():
-    """Добавить счетчик ожидающих заявок во все шаблоны"""
     from modules.core.models import SupplyRequest
     try:
         if current_user.is_authenticated and current_user.role == 'admin':
@@ -244,7 +243,6 @@ def inject_pending_requests():
 
 @app.route('/')
 def index():
-    """Главная страница с перенаправлением по ролям"""
     if current_user.is_authenticated:
         role_redirects = {
             'student': 'user.dashboard',
@@ -258,15 +256,12 @@ def index():
 
 @app.route('/about')
 def about():
-    """Страница о проекте"""
     return render_template('about.html')
 
 
 @app.route('/health')
 def health_check():
-    """Эндпоинт для проверки работоспособности приложения"""
     try:
-        # Простая проверка БД
         with db.engine.connect() as conn:
             conn.execute(text('SELECT 1'))
         return {'status': 'healthy', 'database': 'connected'}, 200
@@ -274,7 +269,6 @@ def health_check():
         return {'status': 'unhealthy', 'error': str(e)}, 500
 
 
-# Обработчики ошибок
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('errors/404.html'), 404
@@ -296,42 +290,33 @@ def unauthorized(e):
 
 
 def migrate_database():
-    """Миграция для добавления новых таблиц и полей"""
     with app.app_context():
         from sqlalchemy import text
 
         try:
             with db.engine.connect() as conn:
-                # 1. Добавляем поле is_deleted в menu_items
                 result = conn.execute(text("PRAGMA table_info(menu_items)"))
                 columns = [col[1] for col in result.fetchall()]
 
                 if 'is_deleted' not in columns:
-                    print("Добавляем поле is_deleted в таблицу menu_items...")
                     conn.execute(text("ALTER TABLE menu_items ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE"))
 
-                # 2. Добавляем поля для возврата средств в orders
                 result = conn.execute(text("PRAGMA table_info(orders)"))
                 columns = [col[1] for col in result.fetchall()]
 
                 if 'refunded' not in columns:
-                    print("Добавляем поле refunded в таблицу orders...")
                     conn.execute(text("ALTER TABLE orders ADD COLUMN refunded BOOLEAN DEFAULT FALSE"))
 
                 if 'refund_amount' not in columns:
-                    print("Добавляем поле refund_amount в таблицу orders...")
                     conn.execute(text("ALTER TABLE orders ADD COLUMN refund_amount FLOAT DEFAULT 0.0"))
 
                 if 'refund_date' not in columns:
-                    print("Добавляем поле refund_date в таблицу orders...")
                     conn.execute(text("ALTER TABLE orders ADD COLUMN refund_date DATETIME"))
 
-                # 3. Проверяем существование таблицы transactions
                 tables = conn.execute(
                     text("SELECT name FROM sqlite_master WHERE type='table' AND name='transactions'")).fetchall()
 
                 if not tables:
-                    print("Создаем таблицу transactions...")
                     conn.execute(text('''
                         CREATE TABLE transactions (
                             id INTEGER PRIMARY KEY,
@@ -347,7 +332,65 @@ def migrate_database():
                         )
                     '''))
 
-                print("Миграция базы данных завершена!")
+                tables = conn.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table' AND name='supply_requests'")).fetchall()
+
+                if tables:
+                    result = conn.execute(text("PRAGMA table_info(supply_requests)"))
+                    columns = [col[1] for col in result.fetchall()]
+
+                    if 'approved_at' not in columns:
+                        conn.execute(text("ALTER TABLE supply_requests ADD COLUMN approved_at DATETIME"))
+
+                    if 'approved_by' not in columns:
+                        conn.execute(text("ALTER TABLE supply_requests ADD COLUMN approved_by INTEGER"))
+
+                tables = conn.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'")).fetchall()
+
+                if tables:
+                    result = conn.execute(text("PRAGMA table_info(subscriptions)"))
+                    columns = [col[1] for col in result.fetchall()]
+
+                    existing_columns = {}
+                    for col in result.fetchall():
+                        existing_columns[col[1]] = True
+
+                    result = conn.execute(text("PRAGMA table_info(subscriptions)"))
+                    columns = [col[1] for col in result.fetchall()]
+
+                    if 'days' not in columns:
+                        conn.execute(text("ALTER TABLE subscriptions ADD COLUMN days INTEGER DEFAULT 30"))
+
+                    if 'price' not in columns:
+                        conn.execute(text("ALTER TABLE subscriptions ADD COLUMN price FLOAT DEFAULT 0.0"))
+
+                    if 'start_date' not in columns:
+                        conn.execute(text("ALTER TABLE subscriptions ADD COLUMN start_date DATETIME"))
+
+                    if 'end_date' not in columns:
+                        conn.execute(text("ALTER TABLE subscriptions ADD COLUMN end_date DATETIME"))
+
+                    if 'is_active' not in columns:
+                        conn.execute(text("ALTER TABLE subscriptions ADD COLUMN is_active BOOLEAN DEFAULT TRUE"))
+
+                    if 'created_at' not in columns:
+                        conn.execute(text("ALTER TABLE subscriptions ADD COLUMN created_at DATETIME"))
+
+                else:
+                    conn.execute(text('''
+                        CREATE TABLE subscriptions (
+                            id INTEGER PRIMARY KEY,
+                            user_id INTEGER NOT NULL,
+                            days INTEGER NOT NULL,
+                            price FLOAT NOT NULL,
+                            start_date DATETIME NOT NULL,
+                            end_date DATETIME NOT NULL,
+                            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                            created_at DATETIME,
+                            FOREIGN KEY (user_id) REFERENCES users (id)
+                        )
+                    '''))
 
         except Exception as e:
             print(f"Ошибка миграции: {e}")
@@ -355,9 +398,7 @@ def migrate_database():
 
 
 def init_database():
-    """Инициализация базы данных"""
     with app.app_context():
-        # Проверяем, существует ли база данных
         db_path = 'instance/school_cafeteria.db'
         db_exists = os.path.exists(db_path)
 
@@ -365,7 +406,6 @@ def init_database():
             try:
                 db.create_all()
 
-                # Заполняем тестовыми данными
                 try:
                     from modules.core.seed import seed_database
                     seed_database()
@@ -380,7 +420,6 @@ def init_database():
                 print(f"{e}")
                 traceback.print_exc()
         else:
-            # Проверяем структуру существующей БД
             try:
                 from modules.core.models import User
                 test = User.query.first()
@@ -390,7 +429,6 @@ def init_database():
                     db.drop_all()
                     db.create_all()
 
-                    # Заполняем тестовыми данными
                     try:
                         from modules.core.seed import seed_database
                         seed_database()
@@ -404,6 +442,5 @@ def init_database():
 
 
 if __name__ == '__main__':
-    # Инициализируем БД перед запуском
     init_database()
-    app.run(debug=True, host='0.0.0.0', port=8147)
+    app.run(debug=True, host='0.0.0.0', port=8146)

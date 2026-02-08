@@ -13,10 +13,8 @@
         </div>
     </div>
 
-    <!-- Уведомления -->
     <div id="ajaxAlert" style="display: none; margin-bottom: 20px;"></div>
 
-    <!-- Фильтры -->
     <div class="dashboard-card" style="margin-bottom: 20px;">
         <div class="row g-3">
             <div class="col-md-4">
@@ -47,7 +45,6 @@
         </div>
     </div>
 
-    <!-- Список отзывов -->
     <div class="dashboard-card">
         {% if feedback_list %}
         <div class="feedback-list">
@@ -124,7 +121,6 @@
     </div>
 </div>
 
-<!-- Модальное окно ответа на отзыв -->
 <div class="modal-overlay" id="replyModal" style="display: none;">
     <div class="modal" style="max-width: 500px;">
         <div class="modal-header">
@@ -133,7 +129,6 @@
         </div>
         <div class="modal-body">
             <div id="feedbackPreview" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                <!-- Предпросмотр отзыва будет здесь -->
             </div>
             <div class="form-group">
                 <label for="replyText">Ответ администратора</label>
@@ -338,7 +333,6 @@
 
 {% block extra_js %}
 <script>
-// AJAX уведомления
 function showAlert(message, type = 'success') {
     const alertDiv = document.getElementById('ajaxAlert');
     alertDiv.innerHTML = `
@@ -355,7 +349,6 @@ function showAlert(message, type = 'success') {
     }, 5000);
 }
 
-// Фильтрация отзывов
 function applyFilters() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const ratingFilter = document.getElementById('ratingFilter').value;
@@ -387,7 +380,6 @@ function applyFilters() {
         }
     });
     
-    // Если нет результатов
     if (visibleCount === 0 && (searchTerm || ratingFilter || replyFilter)) {
         const feedbackList = document.querySelector('.feedback-list');
         if (feedbackList && !feedbackList.querySelector('.no-results')) {
@@ -418,7 +410,6 @@ function resetFilters() {
     applyFilters();
 }
 
-// Ответ на отзыв
 let currentFeedbackId = null;
 
 function showReplyModal(feedbackId) {
@@ -496,7 +487,6 @@ function sendReply() {
     });
 }
 
-// Удаление отзыва
 function deleteFeedback(feedbackId) {
     if (confirm('Вы уверены, что хотите удалить этот отзыв?')) {
         fetch(`/admin/api/feedback/${feedbackId}/delete`, {
@@ -524,7 +514,6 @@ function deleteFeedback(feedbackId) {
     }
 }
 
-// Инициализация фильтров при загрузке
 document.addEventListener('DOMContentLoaded', function() {
     applyFilters();
 });

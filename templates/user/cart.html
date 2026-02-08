@@ -1,4 +1,3 @@
-<!-- templates/user/cart.html -->
 {% extends "base.html" %}
 
 {% block title %}Корзина{% endblock %}
@@ -21,7 +20,6 @@
 
 {% if cart_items %}
 <div class="cart-content">
-    <!-- Левая колонка: Товары -->
     <div class="cart-items-container">
         <h2 style="color: #2c3e50; margin-bottom: 20px; font-size: 1.3rem;">
             <i class="bi bi-cart3"></i> Ваши товары ({{ total_items }})
@@ -81,7 +79,6 @@
         {% endfor %}
     </div>
 
-    <!-- Правая колонка: Оформление заказа -->
     <div class="summary-card">
         <h3 style="color: #2c3e50; font-size: 1.3rem; margin-bottom: 20px;">
             <i class="bi bi-credit-card"></i> Оформление заказа
@@ -90,31 +87,33 @@
         <form method="POST" action="{{ url_for('user.checkout') }}" id="checkout-form">
             {{ form.hidden_tag() }}
 
-            <!-- Выбор даты - УЛУЧШЕННЫЙ ВАРИАНТ -->
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
                     <i class="bi bi-calendar"></i> Дата получения
                 </label>
+
                 <div style="position: relative;">
-                    <input type="date"
-                           name="order_date"
-                           id="order_date"
-                           class="form-control datepicker"
-                           value="{{ default_date }}"
-                           min="{{ min_date }}"
-                           max="{{ max_date }}"
-                           required
-                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;">
+                    <input type="text"
+                           id="order_date_input"
+                           readonly
+                           placeholder="Нажмите для выбора даты"
+                           style="width: 100%; padding: 10px 40px 10px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; background: white; cursor: pointer;">
                     <i class="bi bi-calendar-date"
-                       style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #7f8c8d; pointer-events: none;"></i>
+                       id="calendar_icon"
+                       style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #7f8c8d; cursor: pointer;"></i>
                 </div>
+
+                <input type="hidden"
+                       name="order_date"
+                       id="order_date"
+                       value="{{ default_date }}">
+
                 <small style="color: #7f8c8d; display: block; margin-top: 5px;">
-                    Доступно с {{ min_date.strftime('%d.%m.%Y') if min_date is defined and min_date else today.strftime('%d.%m.%Y') }}
-                    по {{ max_date.strftime('%d.%m.%Y') if max_date is defined and max_date else (today + timedelta(days=7)).strftime('%d.%m.%Y') }}
+                    Доступно с {{ min_date.strftime('%d.%m.%Y') if min_date else today.strftime('%d.%m.%Y') }}
+                    по {{ max_date.strftime('%d.%m.%Y') if max_date else (today + timedelta(days=7)).strftime('%d.%m.%Y') }}
                 </small>
             </div>
 
-            <!-- Выбор времени приема пищи -->
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
                     <i class="bi bi-clock"></i> Время приема пищи
@@ -125,7 +124,6 @@
                 </select>
             </div>
 
-            <!-- Выбор способа оплаты -->
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
                     <i class="bi bi-cash-stack"></i> Способ оплаты
@@ -174,7 +172,6 @@
                 </div>
             </div>
 
-            <!-- Особые пожелания -->
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 600; font-size: 0.95rem;">
                     <i class="bi bi-chat-left-text"></i> Особые пожелания
@@ -186,7 +183,6 @@
                           style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: vertical;"></textarea>
             </div>
 
-            <!-- Сводка -->
             <div style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
                 <h4 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1rem;">Сводка заказа</h4>
 
@@ -222,7 +218,6 @@
                 </div>
             </div>
 
-            <!-- Кнопка оформления -->
             <button type="submit"
                     class="checkout-btn"
                     id="checkout-btn"
@@ -230,7 +225,6 @@
                 <i class="bi bi-bag-check"></i> Оформить заказ
             </button>
 
-            <!-- Дополнительная информация -->
             <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eaeaea; text-align: center;">
                 <small style="color: #7f8c8d;">
                     <i class="bi bi-info-circle"></i> Заказ можно отменить до получения. Средства вернутся на баланс.
@@ -251,16 +245,327 @@
 </div>
 {% endif %}
 
+<style>
+#calendar_wrapper {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+#calendar_container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 320px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.calendar_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.calendar_title {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.calendar_nav {
+    background: none;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calendar_nav:hover {
+    background: #f5f5f5;
+}
+
+.calendar_weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.calendar_days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+
+.calendar_day {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.calendar_day:hover {
+    background: #e8f4fc;
+}
+
+.calendar_day.selected {
+    background: #27ae60;
+    color: white;
+    font-weight: 600;
+}
+
+.calendar_day.today {
+    border: 2px solid #3498db;
+    color: #3498db;
+}
+
+.calendar_day.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+
+.calendar_day.empty {
+    visibility: hidden;
+}
+
+.calendar_actions {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+</style>
+
+<div id="calendar_wrapper">
+    <div id="calendar_container">
+        <div class="calendar_header">
+            <button class="calendar_nav" id="calendar_prev">◀</button>
+            <div class="calendar_title" id="calendar_month_year"></div>
+            <button class="calendar_nav" id="calendar_next">▶</button>
+        </div>
+
+        <div class="calendar_weekdays">
+            <div>Пн</div>
+            <div>Вт</div>
+            <div>Ср</div>
+            <div>Чт</div>
+            <div>Пт</div>
+            <div>Сб</div>
+            <div>Вс</div>
+        </div>
+
+        <div class="calendar_days" id="calendar_days"></div>
+
+        <div class="calendar_actions">
+            <button type="button" id="calendar_cancel" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;">
+                Отмена
+            </button>
+            <button type="button" id="calendar_ok" style="padding: 8px 16px; border: none; border-radius: 6px; background: #27ae60; color: white; cursor: pointer;">
+                ОК
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Обработка изменения количества
+    console.log('Cart page loaded - initializing SIMPLE calendar');
+
+    const dateInput = document.getElementById('order_date_input');
+    const dateHidden = document.getElementById('order_date');
+    const calendarIcon = document.getElementById('calendar_icon');
+    const calendarWrapper = document.getElementById('calendar_wrapper');
+
+    let currentDate = new Date();
+    let selectedDate = null;
+
+    function initDate() {
+        // Парсим дату из скрытого поля
+        if (dateHidden.value) {
+            const parts = dateHidden.value.split('-');
+            if (parts.length === 3) {
+                selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                // Отображаем в формате DD.MM.YYYY
+                dateInput.value = `${parts[2]}.${parts[1]}.${parts[0]}`;
+            }
+        }
+
+        if (!selectedDate) {
+            selectedDate = new Date();
+            const year = selectedDate.getFullYear();
+            const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+            const day = String(selectedDate.getDate()).padStart(2, '0');
+
+            dateInput.value = `${day}.${month}.${year}`;
+            dateHidden.value = `${year}-${month}-${day}`;
+        }
+
+        currentDate = new Date(selectedDate);
+    }
+
+    function showCalendar() {
+        console.log('Showing calendar');
+        renderCalendar();
+        calendarWrapper.style.display = 'flex';
+    }
+
+    function hideCalendar() {
+        console.log('Hiding calendar');
+        calendarWrapper.style.display = 'none';
+    }
+
+    function renderCalendar() {
+        const monthYear = document.getElementById('calendar_month_year');
+        const daysContainer = document.getElementById('calendar_days');
+
+        const monthNames = [
+            'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+            'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+        ];
+        monthYear.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+
+        daysContainer.innerHTML = '';
+
+        const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const daysInMonth = lastDay.getDate();
+
+        let startingDay = firstDay.getDay();
+        if (startingDay === 0) startingDay = 6; // Воскресенье -> 6
+        else startingDay--; // Понедельник -> 0
+
+        for (let i = 0; i < startingDay; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'calendar_day empty';
+            daysContainer.appendChild(emptyDay);
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const minDate = new Date("{{ min_date.strftime('%Y-%m-%d') if min_date else today.strftime('%Y-%m-%d') }}");
+        const maxDate = new Date("{{ max_date.strftime('%Y-%m-%d') if max_date else (today + timedelta(days=7)).strftime('%Y-%m-%d') }}");
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar_day';
+            dayElement.textContent = day;
+
+            const isToday = date.getTime() === today.getTime();
+            const isSelected = selectedDate && date.getTime() === selectedDate.getTime();
+            const isDisabled = date < today || date > maxDate;
+
+            if (isToday) dayElement.classList.add('today');
+            if (isSelected) dayElement.classList.add('selected');
+            if (isDisabled) {
+                dayElement.classList.add('disabled');
+                dayElement.style.cursor = 'not-allowed';
+            } else {
+                dayElement.addEventListener('click', function() {
+                    console.log('Day clicked:', day);
+                    selectDate(date);
+                });
+            }
+
+            daysContainer.appendChild(dayElement);
+        }
+    }
+
+    function selectDate(date) {
+        console.log('Selecting date:', date);
+        selectedDate = date;
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+
+        dateInput.value = `${day}.${month}.${year}`;
+        dateHidden.value = `${year}-${month}-${day}`;
+
+        hideCalendar();
+
+        renderCalendar();
+    }
+
+    dateInput.addEventListener('click', showCalendar);
+    calendarIcon.addEventListener('click', showCalendar);
+
+    document.getElementById('calendar_prev').addEventListener('click', function() {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+    });
+
+    document.getElementById('calendar_next').addEventListener('click', function() {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+    });
+
+    document.getElementById('calendar_cancel').addEventListener('click', hideCalendar);
+    document.getElementById('calendar_ok').addEventListener('click', function() {
+        if (selectedDate) {
+            selectDate(selectedDate);
+        } else {
+            hideCalendar();
+        }
+    });
+
+    calendarWrapper.addEventListener('click', function(e) {
+        if (e.target === calendarWrapper) {
+            hideCalendar();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && calendarWrapper.style.display === 'flex') {
+            hideCalendar();
+        }
+    });
+
+    initDate();
+    console.log('Calendar initialized');
+
+    console.log('Calendar wrappers found:', document.querySelectorAll('#calendar_wrapper').length);
+    console.log('Date inputs found:', document.querySelectorAll('#order_date_input').length);
+
     document.querySelectorAll('.plus-btn').forEach(button => {
         button.addEventListener('click', function() {
             const itemId = this.getAttribute('data-item-id');
             const quantitySpan = document.getElementById('quantity-' + itemId);
             let quantity = parseInt(quantitySpan.textContent);
 
-            if (quantity < 10) { // Максимум 10 порций
+            if (quantity < 10) {
                 quantity++;
                 updateCartQuantity(itemId, quantity);
             }
@@ -277,7 +582,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 quantity--;
                 updateCartQuantity(itemId, quantity);
             } else {
-                // Если количество 1, удаляем товар
                 if (confirm('Удалить товар из корзины?')) {
                     removeFromCart(itemId);
                 }
@@ -326,25 +630,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Обновление календаря - чтобы показать календарь при клике
-    const dateInput = document.getElementById('order_date');
-    if (dateInput) {
-        dateInput.addEventListener('focus', function() {
-            this.type = 'date';
-            this.showPicker?.(); // Используем нативный пикер если поддерживается
-        });
-
-        // Также делаем календарь видимым при клике на иконку
-        const calendarIcon = dateInput.parentElement.querySelector('.bi-calendar-date');
-        if (calendarIcon) {
-            calendarIcon.addEventListener('click', function() {
-                dateInput.focus();
-                dateInput.showPicker?.();
-            });
-        }
-    }
-
-    // Проверка доступности способов оплаты
     const subscriptionRadio = document.getElementById('payment-subscription');
     const balanceRadio = document.getElementById('payment-balance');
     const checkoutBtn = document.getElementById('checkout-btn');
@@ -380,7 +665,6 @@ document.addEventListener('DOMContentLoaded', function() {
         balanceRadio.addEventListener('change', updateCheckoutButton);
     }
 
-    // Проверка при отправке формы
     document.getElementById('checkout-form').addEventListener('submit', function(e) {
         const selectedPayment = document.querySelector('input[name="payment_method"]:checked');
 
@@ -411,12 +695,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Показываем индикатор загрузки
+        const orderDate = document.getElementById('order_date').value;
+        if (!orderDate) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите дату получения заказа');
+            return;
+        }
+
         checkoutBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Оформляем...';
         checkoutBtn.disabled = true;
     });
 
-    // Инициализация
     updateCheckoutButton();
 });
 </script>
@@ -474,24 +763,6 @@ document.addEventListener('DOMContentLoaded', function() {
     background: #95a5a6;
     cursor: not-allowed;
     opacity: 0.7;
-}
-
-/* Стили для календаря */
-.datepicker {
-    cursor: pointer;
-}
-
-.datepicker::-webkit-calendar-picker-indicator {
-    opacity: 0;
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-}
-
-.datepicker:focus {
-    border-color: #3498db;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-    outline: none;
 }
 </style>
 {% endblock %}

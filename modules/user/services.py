@@ -4,106 +4,91 @@ from modules.core.models import Subscription, Order, Transaction
 
 
 class SubscriptionService:
-    """Сервис для работы с абонементами"""
+
+    DAY_PRICE = 150.0  # Цена за один день
 
     @staticmethod
     def get_user_subscriptions(user_id):
-        """Получить все абонементы пользователя"""
-        return Subscription.query.filter_by(
+        from modules.core.models import Subscription
+
+        subscriptions = Subscription.query.filter_by(
             user_id=user_id
         ).order_by(
             Subscription.created_at.desc()
         ).all()
 
+        for sub in subscriptions:
+            if sub.is_active and sub.end_date < datetime.utcnow():
+                sub.is_active = False
+        if subscriptions:
+            db.session.commit()
+
+        return subscriptions
+
     @staticmethod
     def get_active_subscription(user_id):
-        """Получить активный абонемент пользователя"""
-        today = date.today()
+        from modules.core.models import Subscription
 
-        # Ищем активный абонемент, который еще не истек
+        now = datetime.utcnow()
+
         subscription = Subscription.query.filter(
             Subscription.user_id == user_id,
             Subscription.is_active == True,
-            Subscription.end_date >= today
+            Subscription.end_date > now
         ).first()
-
-        # Если абонемент истек, деактивируем его
-        if subscription and subscription.end_date < today:
-            subscription.is_active = False
-            db.session.commit()
-            return None
 
         return subscription
 
     @staticmethod
-    def purchase_subscription(user, subscription_type):
-        """Покупка абонемента"""
-        # Цены и настройки абонементов
-        subscription_configs = {
-            'weekly': {
-                'name': 'Недельный',
-                'price': 1500.00,
-                'days': 7,
-                'meals': 10
-            },
-            'monthly': {
-                'name': 'Месячный',
-                'price': 5000.00,
-                'days': 30,
-                'meals': 40
-            }
-        }
+    def purchase_subscription(user, days):
+        from modules.core.models import Subscription, Transaction
 
-        if subscription_type not in subscription_configs:
-            return False, "Неверный тип абонемента"
+        if days < 1 or days > 365:
+            return False, "Можно купить абонемент от 1 до 365 дней", None
 
-        config = subscription_configs[subscription_type]
+        price = days * SubscriptionService.DAY_PRICE
 
-        # Проверяем баланс пользователя
-        if user.balance < config['price']:
-            shortage = config['price'] - user.balance
-            return False, f"Недостаточно средств. Нужно {config['price']} ₽, на балансе {user.balance} ₽"
+        if user.balance < price:
+            return False, f"Недостаточно средств. Нужно {price} ₽, на балансе {user.balance:.2f} ₽", None
 
-        # Проверяем, нет ли уже активного абонемента
-        active_subscription = SubscriptionService.get_active_subscription(user.id)
-        if active_subscription:
-            return False, f"У вас уже есть активный абонемент (действует до {active_subscription.end_date.strftime('%d.%m.%Y')})"
+        old_subscriptions = Subscription.query.filter(
+            Subscription.user_id == user.id,
+            Subscription.is_active == True
+        ).all()
 
-        # Создаем абонемент
-        start_date = date.today()
-        end_date = start_date + timedelta(days=config['days'])
+        for old_sub in old_subscriptions:
+            old_sub.is_active = False
+
+        start_date = datetime.utcnow()
+        end_date = start_date + timedelta(days=days)
 
         subscription = Subscription(
             user_id=user.id,
-            subscription_type=subscription_type,
+            days=days,
             start_date=start_date,
             end_date=end_date,
-            price=config['price'],
-            meals_remaining=config['meals'],
+            price=price,
             is_active=True
         )
 
-        # Списание средств с баланса
-        user.balance -= config['price']
+        user.balance -= price
 
-        # Создаем транзакцию
         transaction = Transaction(
             user_id=user.id,
-            amount=config['price'],
+            amount=-price,
             transaction_type='subscription',
             status='completed',
-            description=f'Покупка {config["name"].lower()} абонемента'
+            description=f'Покупка абонемента на {days} дней'
         )
 
         db.session.add(subscription)
         db.session.add(transaction)
         db.session.commit()
 
-        return True, subscription
+        return True, f"Абонемент на {days} дней успешно приобретен! Действует до {end_date.strftime('%d.%m.%Y')}", subscription
 
     @staticmethod
     def use_subscription_for_order(order_id, subscription_id):
-        """Использовать абонемент для оплаты заказа"""
         from modules.core.models import Order, Subscription
 
         order = Order.query.get(order_id)
@@ -112,37 +97,26 @@ class SubscriptionService:
         if not order or not subscription:
             return False, "Заказ или абонемент не найден"
 
-        # Проверяем, что абонемент активен
         if not subscription.is_active:
             return False, "Абонемент не активен"
 
-        # Проверяем срок действия
-        today = date.today()
-        if subscription.end_date < today:
+        now = datetime.utcnow()
+        if subscription.end_date < now:
             subscription.is_active = False
             db.session.commit()
             return False, "Срок действия абонемента истек"
 
-        # Проверяем остаток приемов пищи
-        if subscription.meals_remaining < order.quantity:
-            return False, f"Недостаточно приемов пищи в абонементе. Осталось: {subscription.meals_remaining}"
-
-        # Используем абонемент
-        subscription.meals_remaining -= order.quantity
         order.payment_type = 'subscription'
         order.payment_status = 'paid'
         order.subscription_id = subscription.id
-
-        # Если приемы пищи закончились, деактивируем абонемент
-        if subscription.meals_remaining <= 0:
-            subscription.is_active = False
 
         db.session.commit()
         return True, "Оплата абонементом прошла успешно"
 
     @staticmethod
     def check_subscription_usage(user_id, start_date=None, end_date=None):
-        """Проверить использование абонемента за период"""
+        from modules.core.models import Order
+
         query = Order.query.filter(
             Order.user_id == user_id,
             Order.payment_type == 'subscription',
@@ -168,22 +142,20 @@ class SubscriptionService:
 
     @staticmethod
     def cancel_subscription(subscription_id):
-        """Отмена абонемента с возвратом средств"""
+        from modules.core.models import Subscription, Transaction
+
         subscription = Subscription.query.get(subscription_id)
 
         if not subscription:
             return False, "Абонемент не найден"
 
-        # Проверяем, можно ли отменить
-        today = date.today()
-        if subscription.start_date < today:
+        now = datetime.utcnow()
+        if subscription.start_date < now:
             return False, "Нельзя отменить начавшийся абонемент"
 
-        # Возвращаем средства
         user = subscription.user
         user.balance += subscription.price
 
-        # Создаем транзакцию возврата
         transaction = Transaction(
             user_id=user.id,
             amount=subscription.price,
@@ -192,7 +164,6 @@ class SubscriptionService:
             description=f'Отмена абонемента #{subscription.id}'
         )
 
-        # Удаляем абонемент
         db.session.delete(subscription)
         db.session.add(transaction)
         db.session.commit()
@@ -201,14 +172,11 @@ class SubscriptionService:
 
 
 class PaymentService:
-    """Сервис для обработки оплат"""
 
     @staticmethod
     def get_payment_options(user_id):
-        """Получить доступные способы оплаты для пользователя"""
-        options = ['balance']  # Всегда доступна оплата с баланса
+        options = ['balance']
 
-        # Проверяем наличие активного абонемента
         active_subscription = SubscriptionService.get_active_subscription(user_id)
         if active_subscription:
             options.append('subscription')

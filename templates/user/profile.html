@@ -44,14 +44,12 @@
         </div>
     </div>
 
-    <!-- Раздел баланса -->
     <div class="form-section" style="background: #f8f9fa; border-radius: 10px; padding: 25px; margin-bottom: 25px;">
         <h3 style="color: #2c3e50; font-size: 1.2rem; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #eaeaea; display: flex; align-items: center; gap: 10px;">
             <i class="bi bi-wallet2" style="color: #27ae60;"></i> Управление балансом
         </h3>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
-            <!-- Текущий баланс -->
             <div>
                 <div style="background: white; border-radius: 8px; padding: 20px; text-align: center; border: 2px solid #eaeaea;">
                     <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 8px;">Текущий баланс</div>
@@ -64,7 +62,6 @@
                 </div>
             </div>
 
-            <!-- Пополнение баланса -->
             <div>
                 <div style="background: white; border-radius: 8px; padding: 20px; border: 2px solid #eaeaea;">
                     <h4 style="color: #2c3e50; margin-bottom: 20px; font-size: 1.1rem;">
@@ -91,7 +88,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- Быстрые суммы -->
                         <div style="margin-bottom: 20px;">
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
                                 <button type="button" class="quick-amount-btn" data-amount="100" style="padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
@@ -119,7 +115,87 @@
         </div>
     </div>
 
-    <!-- Основная форма профиля -->
+    <div class="form-section" style="background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 25px;">
+        <h3 style="color: #2c3e50; font-size: 1.2rem; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #eaeaea;">
+            Абонемент на питание
+        </h3>
+
+        {% if active_subscription %}
+        <div style="background: white; border-radius: 8px; padding: 20px; border: 1px solid #eaeaea; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <div style="font-weight: 700; color: #2c3e50; font-size: 1.1rem;">Активный абонемент</div>
+                    <div style="color: #7f8c8d; font-size: 0.9rem;">{{ active_subscription.days }} приёмов пищи</div>
+                </div>
+                <div style="color: #27ae60; font-weight: 600;">{{ active_subscription.price }} ₽</div>
+            </div>
+
+            <div style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 10px;">
+                <div>Начало: {{ active_subscription.start_date.strftime('%d.%m.%Y') }}</div>
+                <div>Окончание: {{ active_subscription.end_date.strftime('%d.%m.%Y') }}</div>
+            </div>
+
+            <div style="background: #f0f9f0; border-radius: 6px; padding: 8px 12px; color: #27ae60; font-size: 0.9rem;">
+                Осталось дней: {{ active_subscription.days_remaining }}
+            </div>
+        </div>
+        {% else %}
+        <div style="background: white; border-radius: 8px; padding: 20px; border: 1px solid #eaeaea; text-align: center;">
+            <div style="margin-bottom: 15px;">
+                <div style="font-size: 2rem; color: #bdc3c7; margin-bottom: 10px;">
+                    <i class="bi bi-ticket"></i>
+                </div>
+                <div style="color: #7f8c8d; margin-bottom: 15px;">Нет активного абонемента</div>
+            </div>
+            <a href="{{ url_for('user.buy_subscription') }}" class="btn"
+               style="background: #27ae60; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; display: inline-block;">
+                Купить абонемент
+            </a>
+        </div>
+        {% endif %}
+
+        {% if user_subscriptions %}
+        <div style="margin-top: 20px;">
+            <div style="color: #2c3e50; font-weight: 600; margin-bottom: 10px; font-size: 1rem;">
+                История абонементов
+            </div>
+            <div style="max-height: 150px; overflow-y: auto;">
+                {% for sub in user_subscriptions %}
+                <div style="background: white; border: 1px solid #eee; border-radius: 6px; padding: 10px; margin-bottom: 8px; font-size: 0.9rem;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <div>
+                            <strong>{{ sub.days }} приёмов пищи</strong>
+                            <div style="color: #7f8c8d; font-size: 0.85rem;">
+                                {{ sub.start_date.strftime('%d.%m.%Y') }} - {{ sub.end_date.strftime('%d.%m.%Y') }}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div>{{ sub.price }} ₽</div>
+                            <div style="color: {% if sub.is_active and sub.end_date > now %}#27ae60{% else %}#95a5a6{% endif %}; font-size: 0.8rem;">
+                                {% if sub.is_active and sub.end_date > now %}
+                                    Активен
+                                {% else %}
+                                    Завершен
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if active_subscription %}
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="{{ url_for('user.buy_subscription') }}" class="btn"
+               style="background: #3498db; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; display: inline-block; font-size: 0.9rem;">
+                Продлить абонемент
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
     <form method="POST" action="{{ url_for('user.profile') }}" id="profile-form" class="profile-form" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
 
@@ -193,7 +269,6 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Анимация появления формы
     const formSections = document.querySelectorAll('.form-section');
     formSections.forEach((section, index) => {
         section.style.opacity = '0';
@@ -206,7 +281,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, index * 100);
     });
 
-    // Обработка быстрых кнопок суммы
     document.querySelectorAll('.quick-amount-btn').forEach(button => {
         button.addEventListener('click', function() {
             const amount = this.getAttribute('data-amount');
@@ -215,12 +289,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (amountField) {
                 amountField.value = amount;
 
-                // Визуальный эффект
                 this.style.background = '#27ae60';
                 this.style.color = 'white';
                 this.style.borderColor = '#27ae60';
 
-                // Сбрасываем стиль у других кнопок
                 document.querySelectorAll('.quick-amount-btn').forEach(btn => {
                     if (btn !== this) {
                         btn.style.background = '#f8f9fa';
@@ -232,7 +304,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Подтверждение пополнения баланса
     const balanceForm = document.getElementById('balance-form');
     if (balanceForm) {
         balanceForm.addEventListener('submit', function(e) {

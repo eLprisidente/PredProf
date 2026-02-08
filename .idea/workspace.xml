@@ -5,34 +5,54 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="384db4b7-ae9f-4069-b2be-230614ad11aa" name="Changes" comment="test version">
-      <change afterPath="$PROJECT_DIR$/static/js/calendar.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/user/my_subscription.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/instance/school_cafeteria.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/admin/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/admin/forms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/admin/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/admin/routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/auth/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/auth/forms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/auth/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/auth/routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/auth/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/auth/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/modules/cook/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/cook/forms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/cook/inventory.py" beforeDir="false" afterPath="$PROJECT_DIR$/static/css/calendar.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/modules/cook/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/cook/routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/cook/services.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/cook/services.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/core/constants.,py.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/core/decorators.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/core/decorators.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/modules/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/core/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/core/seed.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/core/seed.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/core/services/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/core/services/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/core/services/payment_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/core/services/payment_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modules/core/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/core/utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/modules/user/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/user/forms.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/modules/user/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/user/routes.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/modules/user/services.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/user/services.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/css/calendar.css" beforeDir="false" afterPath="$PROJECT_DIR$/static/css/calendar.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/static/css/style.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/js/calendar.js" beforeDir="false" afterPath="$PROJECT_DIR$/static/js/calendar.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/static/js/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/static/js/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/uploads/avatars/user_3_20260128_132649_IMG_6744.jpeg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/uploads/menu_items/menu_20260207_004835_IMG_6830.jpeg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/uploads/menu_items/menu_20260207_005507_B50B8322-C16E-44C7-A708-3F6EB26E8D22.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/admin/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/dashboard.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/admin/feedback.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/feedback.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/admin/reports.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/reports.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/admin/statistics.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/statistics.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/admin/supply_requests.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/supply_requests.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/admin/users.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/users.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/cook/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/dashboard.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/cook/edit_menu_item.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/edit_menu_item.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cook/inventory.html" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/cook/menu_management.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/menu_management.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cook/new_menu_item.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/new_menu_item.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/cook/orders.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/orders.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/cook/supply_request_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/supply_request_form.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/cook/supply_requests.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/cook/supply_requests.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/cook/update_inventory.html" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/user/buy_subscription.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/buy_subscription.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/user/cart.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/cart.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/user/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/dashboard.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/user/menu.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/menu.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/user/my_subscription.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/my_subscription.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/user/order.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/order.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/user/orders.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/orders.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/user/profile.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/profile.html" afterDir="false" />
@@ -191,8 +211,35 @@
       <option name="project" value="LOCAL" />
       <updated>1770014941087</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="test version">
+      <option name="closed" value="true" />
+      <created>1770466457026</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1770466457026</updated>
+    </task>
+    <task id="LOCAL-00005" summary="test version">
+      <option name="closed" value="true" />
+      <created>1770466534458</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1770466534458</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="v1" />

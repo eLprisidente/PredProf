@@ -18,10 +18,8 @@
         </div>
     </div>
 
-    <!-- Уведомления AJAX -->
     <div id="ajaxAlert" style="display: none; margin-bottom: 20px;"></div>
 
-    <!-- Фильтры -->
     <div class="dashboard-card" style="margin-bottom: 20px;">
         <div class="row g-3">
             <div class="col-md-4">
@@ -50,7 +48,6 @@
         </div>
     </div>
 
-    <!-- Таблица пользователей -->
     <div class="dashboard-card">
         <div class="table-responsive">
             <table class="admin-table" id="usersTable">
@@ -108,7 +105,6 @@
     </div>
 </div>
 
-<!-- Модальное окно добавления пользователя -->
 <div class="modal-overlay" id="addUserModal" style="display: none;">
     <div class="modal">
         <div class="modal-header">
@@ -158,7 +154,6 @@
     </div>
 </div>
 
-<!-- Модальное окно редактирования пользователя -->
 <div class="modal-overlay" id="editUserModal" style="display: none;">
     <div class="modal">
         <div class="modal-header">
@@ -411,7 +406,6 @@
 
 {% block extra_js %}
 <script>
-// AJAX уведомления
 function showAlert(message, type = 'success') {
     const alertDiv = document.getElementById('ajaxAlert');
     alertDiv.innerHTML = `
@@ -428,7 +422,6 @@ function showAlert(message, type = 'success') {
     }, 5000);
 }
 
-// Фильтрация таблицы
 function applyFilters() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     const roleFilter = document.getElementById('roleFilter').value;
@@ -455,7 +448,6 @@ function applyFilters() {
         }
     });
 
-    // Если нет результатов
     if (visibleCount === 0 && (searchTerm || roleFilter || statusFilter)) {
         const tbody = document.querySelector('#usersTable tbody');
         if (!tbody.querySelector('.no-results')) {
@@ -485,7 +477,6 @@ function resetFilters() {
     applyFilters();
 }
 
-// Добавление пользователя
 function showAddUserModal() {
     document.getElementById('addUserModal').style.display = 'flex';
 }
@@ -529,7 +520,6 @@ function addUser() {
     });
 }
 
-// Редактирование пользователя
 function editUser(userId) {
     fetch(`/admin/api/user/${userId}`)
     .then(response => {
@@ -603,7 +593,6 @@ function updateUser() {
     });
 }
 
-// Удаление пользователя
 function confirmDeleteUser(userId, userName) {
     if (confirm(`Вы уверены, что хотите удалить пользователя "${userName}"?`)) {
         fetch(`/admin/api/user/${userId}/delete`, {
@@ -631,7 +620,6 @@ function confirmDeleteUser(userId, userName) {
     }
 }
 
-// Инициализация фильтров при загрузке
 document.addEventListener('DOMContentLoaded', function() {
     applyFilters();
 });

@@ -11,22 +11,25 @@
             </h1>
             <p style="color: #7f8c8d; font-size: 1rem;">Управление заявками от поваров</p>
         </div>
+        <div>
+            <span class="badge badge-warning" style="font-size: 1rem;">
+                Ожидают: {{ requests|selectattr('status', 'equalto', 'pending')|list|length }}
+            </span>
+        </div>
     </div>
 
-    <!-- Уведомления -->
     <div id="ajaxAlert" style="display: none; margin-bottom: 20px;"></div>
 
-    <!-- Фильтры статусов -->
     <div class="filter-tabs" style="margin-bottom: 20px;">
         <div class="btn-group" role="group">
             <button type="button" class="btn btn-outline-primary active" onclick="filterRequests('all')">Все</button>
             <button type="button" class="btn btn-outline-warning" onclick="filterRequests('pending')">Ожидающие</button>
             <button type="button" class="btn btn-outline-success" onclick="filterRequests('approved')">Утвержденные</button>
             <button type="button" class="btn btn-outline-danger" onclick="filterRequests('rejected')">Отклоненные</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="filterRequests('cancelled')">Отмененные</button>
         </div>
     </div>
 
-    <!-- Список заявок -->
     <div class="dashboard-card">
         {% if requests %}
         <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
@@ -36,12 +39,12 @@
                         <th>ID</th>
                         <th>Продукт</th>
                         <th>Количество</th>
-                        <th>Категория</th>
-                        <th>Поставщик</th>
+                        <th>Ед.</th>
                         <th>Повар</th>
                         <th>Срочность</th>
+                        <th>Дата</th>
                         <th>Статус</th>
-                        <th>Дата создания</th>
+                        <th>Согласовал</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
@@ -51,20 +54,25 @@
                         <td>#{{ req.id }}</td>
                         <td>
                             <strong>{{ req.product_name }}</strong>
-                        </td>
-                        <td>{{ req.quantity }} {{ req.unit }}</td>
-                        <td>{{ req.category }}</td>
-                        <td>{{ req.supplier or '-' }}</td>
-                        <td>{{ req.cook.full_name if req.cook else 'Неизвестно' }}</td>
-                        <td>
-                            {% if req.urgency == 'high' %}
-                                <span class="badge badge-danger">Высокая</span>
-                            {% elif req.urgency == 'medium' %}
-                                <span class="badge badge-warning">Средняя</span>
-                            {% else %}
-                                <span class="badge badge-info">Низкая</span>
+                            {% if req.notes %}
+                            <br><small style="color: #7f8c8d;">{{ req.notes|truncate(30) }}</small>
                             {% endif %}
                         </td>
+                        <td><strong>{{ req.quantity }}</strong></td>
+                        <td>{{ req.unit }}</td>
+                        <td>{{ req.cook.full_name if req.cook else 'Неизвестно' }}</td>
+                        <td>
+                            {% if req.urgency == 'critical' %}
+                                <span class="badge badge-danger" title="Критическая"><i class="bi bi-exclamation-triangle"></i></span>
+                            {% elif req.urgency == 'high' %}
+                                <span class="badge badge-warning" title="Высокая"><i class="bi bi-exclamation-circle"></i></span>
+                            {% elif req.urgency == 'low' %}
+                                <span class="badge badge-info" title="Низкая"><i class="bi bi-arrow-down"></i></span>
+                            {% else %}
+                                <span class="badge badge-secondary" title="Обычная"><i class="bi bi-dash"></i></span>
+                            {% endif %}
+                        </td>
+                        <td>{{ req.created_at.strftime('%d.%m.%Y') }}</td>
                         <td>
                             {% if req.status == 'pending' %}
                                 <span class="badge badge-warning">Ожидает</span>
@@ -72,11 +80,20 @@
                                 <span class="badge badge-success">Утверждена</span>
                             {% elif req.status == 'rejected' %}
                                 <span class="badge badge-danger">Отклонена</span>
+                            {% elif req.status == 'cancelled' %}
+                                <span class="badge badge-secondary">Отменена</span>
                             {% endif %}
                         </td>
-                        <td>{{ req.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
                         <td>
-                            <div class="btn-group" style="display: flex; gap: 5px;">
+                            {% if req.approver %}
+                                {{ req.approver.full_name }}
+                                <br><small>{{ req.approved_at.strftime('%d.%m.%Y') if req.approved_at }}</small>
+                            {% else %}
+                                <span style="color: #95a5a6;">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" style="display: flex; gap: 5px; flex-wrap: wrap;">
                                 {% if req.status == 'pending' %}
                                     <button class="btn btn-sm btn-success" onclick="approveRequest({{ req.id }})" title="Утвердить">
                                         <i class="bi bi-check"></i>
@@ -100,6 +117,21 @@
                 </tbody>
             </table>
         </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: flex; justify-content: space-between;">
+            <div>
+                <strong>Всего заявок:</strong> {{ requests|length }}
+            </div>
+            <div>
+                <strong>Ожидают:</strong> {{ requests|selectattr('status', 'equalto', 'pending')|list|length }}
+            </div>
+            <div>
+                <strong>Утверждено:</strong> {{ requests|selectattr('status', 'equalto', 'approved')|list|length }}
+            </div>
+            <div>
+                <strong>Отклонено:</strong> {{ requests|selectattr('status', 'equalto', 'rejected')|list|length }}
+            </div>
+        </div>
         {% else %}
         <div class="empty-state" style="text-align: center; padding: 40px 20px;">
             <i class="bi bi-cart-plus" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 15px;"></i>
@@ -110,7 +142,6 @@
     </div>
 </div>
 
-<!-- Модальное окно деталей заявки -->
 <div class="modal-overlay" id="requestDetailsModal" style="display: none;">
     <div class="modal" style="max-width: 600px;">
         <div class="modal-header">
@@ -119,7 +150,6 @@
         </div>
         <div class="modal-body">
             <div id="requestDetails" style="margin-bottom: 20px;">
-                <!-- Детали будут загружены через AJAX -->
             </div>
             <div class="form-group">
                 <label for="requestNotes">Комментарий к решению</label>
@@ -129,7 +159,6 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeRequestDetails()">Закрыть</button>
             <div id="requestActions" style="display: flex; gap: 10px;">
-                <!-- Кнопки действий будут добавлены динамически -->
             </div>
         </div>
     </div>
@@ -185,6 +214,11 @@
 .badge-info {
     background: #d1ecf1;
     color: #0c5460;
+}
+
+.badge-secondary {
+    background: #e2e3e5;
+    color: #383d41;
 }
 
 .btn-group {
@@ -306,24 +340,6 @@
 
 {% block extra_js %}
 <script>
-// AJAX уведомления
-function showAlert(message, type = 'success') {
-    const alertDiv = document.getElementById('ajaxAlert');
-    alertDiv.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: start;">
-            <div>${message}</div>
-            <button type="button" class="close-btn" onclick="this.parentElement.parentElement.style.display='none'" style="background: none; border: none; font-size: 1.2rem; color: inherit;">&times;</button>
-        </div>
-    `;
-    alertDiv.style.display = 'block';
-    alertDiv.className = `alert alert-${type}`;
-
-    setTimeout(() => {
-        alertDiv.style.display = 'none';
-    }, 5000);
-}
-
-// Фильтрация заявок
 function filterRequests(status) {
     const rows = document.querySelectorAll('.request-row');
     rows.forEach(row => {
@@ -334,14 +350,29 @@ function filterRequests(status) {
         }
     });
 
-    // Обновляем активную кнопку
     document.querySelectorAll('.filter-tabs .btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
 }
 
-// Показать детали заявки
+function showAlert(message, type = 'success') {
+    const alertDiv = document.getElementById('ajaxAlert');
+    alertDiv.innerHTML = `
+        <div class="alert alert-${type}" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div>${message}</div>
+                <button type="button" class="close-btn" onclick="this.parentElement.parentElement.style.display='none'" style="background: none; border: none; font-size: 1.2rem; color: inherit;">&times;</button>
+            </div>
+        </div>
+    `;
+    alertDiv.style.display = 'block';
+
+    setTimeout(() => {
+        alertDiv.style.display = 'none';
+    }, 5000);
+}
+
 let currentRequestId = null;
 
 function showRequestDetails(requestId) {
@@ -359,17 +390,21 @@ function showRequestDetails(requestId) {
                 statusBadge = '<span class="badge badge-warning">Ожидает</span>';
             } else if (req.status === 'approved') {
                 statusBadge = '<span class="badge badge-success">Утверждена</span>';
-            } else {
+            } else if (req.status === 'rejected') {
                 statusBadge = '<span class="badge badge-danger">Отклонена</span>';
+            } else {
+                statusBadge = '<span class="badge badge-secondary">Отменена</span>';
             }
 
             let urgencyBadge = '';
-            if (req.urgency === 'high') {
-                urgencyBadge = '<span class="badge badge-danger">Высокая</span>';
-            } else if (req.urgency === 'medium') {
-                urgencyBadge = '<span class="badge badge-warning">Средняя</span>';
-            } else {
+            if (req.urgency === 'critical') {
+                urgencyBadge = '<span class="badge badge-danger">Критическая</span>';
+            } else if (req.urgency === 'high') {
+                urgencyBadge = '<span class="badge badge-warning">Высокая</span>';
+            } else if (req.urgency === 'low') {
                 urgencyBadge = '<span class="badge badge-info">Низкая</span>';
+            } else {
+                urgencyBadge = '<span class="badge badge-secondary">Обычная</span>';
             }
 
             document.getElementById('requestDetails').innerHTML = `
@@ -381,14 +416,6 @@ function showRequestDetails(requestId) {
                     <div>
                         <strong>Количество:</strong><br>
                         ${req.quantity} ${req.unit}
-                    </div>
-                    <div>
-                        <strong>Категория:</strong><br>
-                        ${req.category}
-                    </div>
-                    <div>
-                        <strong>Поставщик:</strong><br>
-                        ${req.supplier || 'Не указан'}
                     </div>
                     <div>
                         <strong>Срочность:</strong><br>
@@ -406,9 +433,18 @@ function showRequestDetails(requestId) {
                         <strong>Дата создания:</strong><br>
                         ${req.created_at}
                     </div>
+                    ${req.approved_by ? `
+                    <div>
+                        <strong>Согласовал:</strong><br>
+                        ${req.approver_name || 'Администратор'}
+                    </div>
+                    <div>
+                        <strong>Дата согласования:</strong><br>
+                        ${req.approved_at || ''}
+                    </div>
+                    ` : ''}
                 </div>
-                ${req.reason ? `<div style="margin-top: 15px;"><strong>Причина:</strong><br>${req.reason}</div>` : ''}
-                ${req.notes ? `<div style="margin-top: 15px;"><strong>Примечания:</strong><br>${req.notes.replace(/\n/g, '<br>')}</div>` : ''}
+                ${req.notes ? `<div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px;"><strong>Примечания:</strong><br>${req.notes.replace(/\n/g, '<br>')}</div>` : ''}
             `;
 
             let actionsHtml = '';
@@ -439,7 +475,6 @@ function closeRequestDetails() {
     document.getElementById('requestNotes').value = '';
 }
 
-// Обработка заявки
 function processRequest(status) {
     const notes = document.getElementById('requestNotes').value;
 
@@ -459,29 +494,10 @@ function processRequest(status) {
             showAlert(result.message, 'success');
             closeRequestDetails();
 
-            // Обновляем строку в таблице
-            const row = document.getElementById(`request-${currentRequestId}`);
-            if (row) {
-                row.className = `request-row request-${result.new_status}`;
-
-                // Обновляем статус
-                const statusCell = row.cells[7];
-                if (status === 'approved') {
-                    statusCell.innerHTML = '<span class="badge badge-success">Утверждена</span>';
-
-                    // Убираем кнопки утверждения/отклонения
-                    const actionsCell = row.cells[9];
-                    actionsCell.innerHTML = `
-                        <div class="btn-group" style="display: flex; gap: 5px;">
-                            <button class="btn btn-sm btn-outline-info" onclick="showRequestDetails(${currentRequestId})" title="Подробнее">
-                                <i class="bi bi-info-circle"></i>
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    statusCell.innerHTML = '<span class="badge badge-danger">Отклонена</span>';
-                }
-            }
+            // Обновляем страницу через 1 секунду
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } else {
             showAlert(result.error, 'danger');
         }
@@ -491,7 +507,6 @@ function processRequest(status) {
     });
 }
 
-// Быстрые действия
 function approveRequest(requestId) {
     currentRequestId = requestId;
     if (confirm('Утвердить эту заявку?')) {

@@ -4,11 +4,10 @@ from datetime import datetime, date, timedelta
 import os
 from werkzeug.utils import secure_filename
 from flask_login import login_required, current_user
+from .forms import ProfileForm, BalanceForm, SubscriptionForm
 
 
-# Функция для проверки разрешенных файлов
 def allowed_file(filename):
-    """Проверяем, что файл - изображение"""
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -18,16 +17,13 @@ user_bp = Blueprint('user', __name__)
 
 
 def get_cart_count():
-    """Получить количество товаров в корзине из сессии"""
     cart = session.get('cart', {})
     total = sum(item.get('quantity', 0) for item in cart.values())
     return total
 
 
-# Добавим контекстный процессор для проверки активного абонемента
 @user_bp.app_context_processor
 def inject_subscription_status():
-    """Добавить информацию об абонементе во все шаблоны"""
     from .services import SubscriptionService
 
     if current_user.is_authenticated and current_user.role == 'student':
@@ -46,47 +42,37 @@ def dashboard():
     from modules.core.models import MenuItem, Order, Subscription
     from datetime import date, datetime, timedelta
 
-    # Сегодняшняя дата
     today = date.today()
 
-    # Отладочная информация
     print(f"DEBUG: Сегодняшняя дата: {today}")
 
-    # Сегодняшние заказы пользователя (включая те, что в работе)
     today_orders = Order.query.filter(
         Order.user_id == current_user.id,
         Order.order_date == today,
         Order.status != 'cancelled'
     ).order_by(Order.created_at.desc()).all()
 
-    # Отладочная информация
-    print(f"DEBUG: Найдено заказов на сегодня: {len(today_orders)}")
     for order in today_orders:
         print(f"  Заказ #{order.id}: дата={order.order_date}, статус={order.status}, оплата={order.payment_status}")
 
-    # Все заказы пользователя (для истории)
     all_orders = Order.query.filter(
         Order.user_id == current_user.id,
         Order.status != 'cancelled'
     ).order_by(Order.order_date.desc(), Order.created_at.desc()).limit(10).all()
 
-    # Меню на сегодня (только доступные и НЕ удаленные блюда)
     today_menu_items = MenuItem.query.filter(
         MenuItem.available == True,
         MenuItem.is_deleted == False
     ).order_by(MenuItem.category, MenuItem.name).all()
 
-    # Статистика
     orders_count = Order.query.filter_by(user_id=current_user.id).count()
     today_orders_count = len(today_orders)
 
-    # Абонементы
     subscription_count = Subscription.query.filter_by(
         user_id=current_user.id,
         is_active=True
     ).count()
 
-    # Проверяем, есть ли недавние возвраты (за последние 24 часа)
     one_day_ago = datetime.utcnow() - timedelta(days=1)
     recent_refunds = Order.query.filter(
         Order.user_id == current_user.id,
@@ -94,8 +80,6 @@ def dashboard():
         Order.refund_date >= one_day_ago
     ).all()
 
-    # Отладочная информация о возвратах
-    print(f"DEBUG: Найдено возвратов за 24 часа: {len(recent_refunds)}")
 
     return render_template('user/dashboard.html',
                            orders=all_orders,
@@ -109,7 +93,6 @@ def dashboard():
                            today=today)
 
 
-# Добавляем функцию пополнения баланса
 @user_bp.route('/profile/balance/add', methods=['POST'])
 @login_required
 def add_balance():
@@ -117,7 +100,6 @@ def add_balance():
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('user.profile'))
 
-    from modules.core.models import User
     from .forms import BalanceForm
 
     form = BalanceForm()
@@ -125,20 +107,16 @@ def add_balance():
     if form.validate_on_submit():
         amount = float(form.amount.data)
 
-        # Проверяем минимальную сумму
         if amount < 10:
             flash('Минимальная сумма пополнения - 10 ₽', 'danger')
             return redirect(url_for('user.profile'))
 
-        # Проверяем максимальную сумму
         if amount > 10000:
             flash('Максимальная сумма пополнения - 10 000 ₽', 'danger')
             return redirect(url_for('user.profile'))
 
-        # Пополняем баланс
         current_user.balance += amount
 
-        # Создаем транзакцию
         from modules.core.models import Transaction
         transaction = Transaction(
             user_id=current_user.id,
@@ -154,7 +132,6 @@ def add_balance():
         flash(f'Баланс успешно пополнен на {amount} ₽. Текущий баланс: {current_user.balance} ₽', 'success')
         return redirect(url_for('user.profile'))
 
-    # Если форма не валидна, показываем ошибки
     for field, errors in form.errors.items():
         for error in errors:
             flash(f'Ошибка: {error}', 'danger')
@@ -171,7 +148,6 @@ def show_menu():
 
     from modules.core.models import MenuItem
 
-    # Получаем только доступные и НЕ удаленные блюда
     breakfast_items = MenuItem.query.filter(
         MenuItem.category == 'breakfast',
         MenuItem.available == True,
@@ -189,11 +165,9 @@ def show_menu():
                            lunch_items=lunch_items)
 
 
-# modules/user/routes.py (обновленная функция view_cart)
 @user_bp.route('/cart')
 @login_required
 def view_cart():
-    """Просмотр корзины"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
@@ -201,7 +175,7 @@ def view_cart():
     from modules.core.models import MenuItem
     from datetime import date, timedelta
     from .services import SubscriptionService
-    from .forms import OrderForm  # Добавляем импорт формы
+    from .forms import OrderForm
 
     cart = session.get('cart', {})
     cart_items = []
@@ -227,22 +201,17 @@ def view_cart():
             total_price += item_total
             total_items += quantity
 
-    # Определяем доступные даты
     today = date.today()
     min_date = today
     max_date = today + timedelta(days=7)
 
-    # Проверяем наличие активного абонемента
     active_subscription = SubscriptionService.get_active_subscription(current_user.id)
 
-    # Получаем доступные способы оплаты
     from .services import PaymentService
     payment_options = PaymentService.get_payment_options(current_user.id)
 
-    # Создаем форму для CSRF защиты
     form = OrderForm()
 
-    # Сохраняем обновленную корзину
     session.modified = True
 
     return render_template('user/cart.html',
@@ -250,18 +219,17 @@ def view_cart():
                            total_price=total_price,
                            total_items=total_items,
                            today=today,
-                           min_date=min_date,  # Передаем объект date
-                           max_date=max_date,  # Передаем объект date
-                           default_date=today.strftime('%Y-%m-%d'),  # Для value input
+                           min_date=min_date,
+                           max_date=max_date,
+                           default_date=today.strftime('%Y-%m-%d'),
                            active_subscription=active_subscription,
                            payment_options=payment_options,
-                           form=form)  # Добавляем форму
+                           form=form)
 
 
 @user_bp.route('/cart/add/<int:item_id>', methods=['POST'])
 @login_required
 def add_to_cart(item_id):
-    """Добавить блюдо в корзину"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
@@ -274,24 +242,18 @@ def add_to_cart(item_id):
         flash('Это блюдо временно недоступно', 'danger')
         return redirect(url_for('user.show_menu'))
 
-    # Получаем количество из формы
     quantity = int(request.form.get('quantity', 1))
 
-    # Инициализируем корзину
     if 'cart' not in session:
         session['cart'] = {}
 
-    # Добавляем товар в корзину (без даты)
     if str(item_id) in session['cart']:
-        # Если товар уже в корзине, увеличиваем количество
         current_item = session['cart'][str(item_id)]
         if isinstance(current_item, dict):
             current_item['quantity'] += quantity
         else:
-            # Конвертируем старую структуру в новую
             session['cart'][str(item_id)] = {'quantity': current_item + quantity}
     else:
-        # Добавляем новый товар
         session['cart'][str(item_id)] = {'quantity': quantity}
 
     session.modified = True
@@ -302,7 +264,6 @@ def add_to_cart(item_id):
 @user_bp.route('/cart/remove/<int:item_id>', methods=['POST'])
 @login_required
 def remove_from_cart(item_id):
-    """Удалить блюдо из корзины"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
@@ -322,7 +283,6 @@ def remove_from_cart(item_id):
 @user_bp.route('/cart/update/<int:item_id>', methods=['POST'])
 @login_required
 def update_cart(item_id):
-    """Обновить количество блюда в корзине"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
@@ -333,7 +293,6 @@ def update_cart(item_id):
     quantity = int(request.form.get('quantity', 1))
 
     if quantity <= 0:
-        # Если количество 0 или отрицательное, удаляем товар
         cart = session.get('cart', {})
         item_id_str = str(item_id)
 
@@ -353,7 +312,6 @@ def update_cart(item_id):
         if isinstance(item_data, dict):
             item_data['quantity'] = quantity
         else:
-            # Конвертируем старую структуру
             cart[item_id_str] = {
                 'quantity': quantity,
                 'order_date': date.today().isoformat()
@@ -368,7 +326,6 @@ def update_cart(item_id):
 @user_bp.route('/cart/checkout', methods=['POST'])
 @login_required
 def checkout():
-    """Оформление заказа с выбором способа оплаты"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
@@ -377,24 +334,20 @@ def checkout():
     from datetime import datetime, date
     from .services import SubscriptionService, PaymentService
 
-    # Получаем данные из корзины (сессии)
     cart = session.get('cart', {})
 
     if not cart:
         flash('Корзина пуста', 'warning')
         return redirect(url_for('user.view_cart'))
 
-    # Получаем выбранную дату заказа
     order_date_str = request.form.get('order_date', date.today().isoformat())
     payment_method = request.form.get('payment_method', 'balance')
 
     try:
-        # Преобразуем строку даты в объект date
         order_date = datetime.strptime(order_date_str, '%Y-%m-%d').date()
     except (ValueError, TypeError):
         order_date = date.today()
 
-    # Проверяем доступность всех блюд в корзине и рассчитываем сумму
     total_amount = 0
     cart_items_info = []
 
@@ -410,7 +363,6 @@ def checkout():
             session.pop('cart', None)
             return redirect(url_for('user.view_cart'))
 
-        # Извлекаем количество из словаря
         quantity = item_data.get('quantity', 1)
         item_total = menu_item.price * quantity
         total_amount += item_total
@@ -421,10 +373,8 @@ def checkout():
             'item_total': item_total
         })
 
-    # Обработка в зависимости от способа оплаты
     try:
         if payment_method == 'balance':
-            # Проверяем достаточность средств
             if current_user.balance < total_amount:
                 shortage = total_amount - current_user.balance
                 flash(
@@ -432,10 +382,8 @@ def checkout():
                     'danger')
                 return redirect(url_for('user.view_cart'))
 
-            # Списание средств с баланса
             current_user.balance -= total_amount
 
-            # Создаем транзакцию
             transaction = Transaction(
                 user_id=current_user.id,
                 amount=total_amount,
@@ -449,13 +397,11 @@ def checkout():
             payment_type = 'balance'
 
         elif payment_method == 'subscription':
-            # Проверяем наличие активного абонемента
             active_subscription = SubscriptionService.get_active_subscription(current_user.id)
             if not active_subscription:
                 flash('У вас нет активного абонемента', 'danger')
                 return redirect(url_for('user.view_cart'))
 
-            # Проверяем, достаточно ли приемов пищи в абонементе
             total_quantity = sum(item['quantity'] for item in cart_items_info)
             if active_subscription.meals_remaining < total_quantity:
                 flash(
@@ -463,7 +409,6 @@ def checkout():
                     'danger')
                 return redirect(url_for('user.view_cart'))
 
-            # Используем абонемент
             active_subscription.meals_remaining -= total_quantity
             if active_subscription.meals_remaining <= 0:
                 active_subscription.is_active = False
@@ -475,7 +420,6 @@ def checkout():
             flash('Неверный способ оплаты', 'danger')
             return redirect(url_for('user.view_cart'))
 
-        # Создаем заказы для каждого блюда в корзине
         for item_info in cart_items_info:
             order = Order(
                 user_id=current_user.id,
@@ -493,11 +437,9 @@ def checkout():
 
         db.session.commit()
 
-        # Очищаем корзину
         session.pop('cart', None)
 
-        flash(f'Заказ успешно оформлен на {order_date.strftime("%d.%m.%Y")}! Способ оплаты: {payment_method}',
-              'success')
+        flash(f'Заказ успешно оформлен на {order_date.strftime("%d.%m.%Y")}!','success')
         return redirect(url_for('user.my_orders'))
 
     except Exception as e:
@@ -520,10 +462,8 @@ def create_order():
 
     form = OrderForm()
 
-    # Получаем доступные способы оплаты
     payment_options = PaymentService.get_payment_options(current_user.id)
 
-    # Если есть активный абонемент, добавляем его в выбор оплаты
     if 'subscription' in payment_options:
         form.payment_type.choices = [
             ('single', 'Разовая оплата (с баланса)'),
@@ -544,17 +484,13 @@ def create_order():
         menu_item = MenuItem.query.get(form.menu_item_id.data)
         total_price = menu_item.price * form.quantity.data
 
-        # Обработка оплаты
         if form.payment_type.data == 'single':
-            # Проверяем баланс
             if current_user.balance < total_price:
                 flash(f'Недостаточно средств на балансе. Нужно {total_price} ₽', 'danger')
                 return redirect(url_for('user.create_order'))
 
-            # Списание с баланса
             current_user.balance -= total_price
 
-            # Создаем транзакцию
             transaction = Transaction(
                 user_id=current_user.id,
                 amount=total_price,
@@ -567,7 +503,6 @@ def create_order():
             payment_status = 'paid'
 
         elif form.payment_type.data == 'subscription':
-            # Используем абонемент
             active_subscription = SubscriptionService.get_active_subscription(current_user.id)
             if not active_subscription:
                 flash('У вас нет активного абонемента', 'danger')
@@ -578,7 +513,6 @@ def create_order():
                       'danger')
                 return redirect(url_for('user.create_order'))
 
-            # Используем абонемент
             active_subscription.meals_remaining -= form.quantity.data
             if active_subscription.meals_remaining <= 0:
                 active_subscription.is_active = False
@@ -648,7 +582,6 @@ def leave_feedback(order_id):
 @user_bp.route('/orders')
 @login_required
 def my_orders():
-    """Мои заказы - скрываем заказы с удаленными блюдами"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
@@ -657,17 +590,14 @@ def my_orders():
     from datetime import date, timedelta
     from sqlalchemy import or_
 
-    # Получаем фильтр из параметров запроса
     filter_type = request.args.get('filter', 'all')
     today = date.today()
 
-    # Базовый запрос: заказы пользователя, где блюдо НЕ удалено
     query = Order.query.join(MenuItem).filter(
         Order.user_id == current_user.id,
-        MenuItem.is_deleted == False  # Только блюда, которые НЕ удалены
+        MenuItem.is_deleted == False
     )
 
-    # Применяем фильтры
     if filter_type == 'today':
         query = query.filter(Order.order_date == today)
     elif filter_type == 'pending':
@@ -683,7 +613,6 @@ def my_orders():
     elif filter_type == 'refunded':
         query = query.filter(Order.refunded == True)
 
-    # Сортируем по дате (сначала новые)
     orders = query.order_by(
         Order.order_date.desc(),
         Order.created_at.desc()
@@ -698,7 +627,6 @@ def my_orders():
 @user_bp.route('/order/<int:order_id>/cancel', methods=['POST'])
 @login_required
 def cancel_order(order_id):
-    """Отменить заказ"""
     if current_user.role != 'student':
         return jsonify({'success': False, 'message': 'Доступ запрещен'}), 403
 
@@ -707,20 +635,16 @@ def cancel_order(order_id):
 
     order = Order.query.get_or_404(order_id)
 
-    # Проверяем, что заказ принадлежит пользователю
     if order.user_id != current_user.id:
         return jsonify({'success': False, 'message': 'Это не ваш заказ'}), 403
 
-    # Проверяем, что заказ можно отменить
     if order.status == 'received':
         return jsonify({'success': False, 'message': 'Нельзя отменить полученный заказ'}), 400
 
-    # Если заказ оплачен, возвращаем средства
     if order.payment_status == 'paid':
         refund_amount = order.total_price
         current_user.balance += refund_amount
 
-        # Добавляем историю возврата
         from modules.core.models import Transaction
         from datetime import datetime
 
@@ -751,7 +675,6 @@ def cancel_order(order_id):
 @user_bp.route('/api/check-subscription')
 @login_required
 def check_subscription():
-    """API для проверки наличия действующего абонемента"""
     if current_user.role != 'student':
         return jsonify({'success': False, 'error': 'Доступ запрещен'}), 403
 
@@ -776,7 +699,6 @@ def check_subscription():
 @user_bp.route('/order/<int:order_id>/pay', methods=['POST'])
 @login_required
 def pay_for_order(order_id):
-    """Оплатить заказ с баланса"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('user.my_orders'))
@@ -785,35 +707,28 @@ def pay_for_order(order_id):
 
     order = Order.query.get_or_404(order_id)
 
-    # Проверяем, что заказ принадлежит пользователю
     if order.user_id != current_user.id:
         flash('Это не ваш заказ', 'danger')
         return redirect(url_for('user.my_orders'))
 
-    # Проверяем, что заказ не оплачен
     if order.payment_status == 'paid':
         flash('Этот заказ уже оплачен', 'warning')
         return redirect(url_for('user.my_orders'))
 
-    # Проверяем, что заказ не отменен
     if order.status == 'cancelled':
         flash('Нельзя оплатить отмененный заказ', 'danger')
         return redirect(url_for('user.my_orders'))
 
-    # Вычисляем сумму заказа
     total_price = order.total_price
 
-    # Проверяем достаточно ли средств на балансе
     if current_user.balance < total_price:
         flash(f'Недостаточно средств на балансе. Нужно {total_price} ₽, на балансе {current_user.balance} ₽', 'danger')
         return redirect(url_for('user.my_orders'))
 
     try:
-        # Списание средств с баланса
         current_user.balance -= total_price
         order.payment_status = 'paid'
 
-        # Добавляем историю транзакции
         from datetime import datetime
         from modules.core.models import Transaction
 
@@ -842,7 +757,6 @@ def pay_for_order(order_id):
 @user_bp.route('/subscriptions')
 @login_required
 def my_subscriptions():
-    """Мои абонементы"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
@@ -857,38 +771,9 @@ def my_subscriptions():
                            active_subscription=active_subscription)
 
 
-@user_bp.route('/subscription/buy', methods=['GET', 'POST'])
-@login_required
-def purchase_subscription():
-    """Покупка абонемента"""
-    if current_user.role != 'student':
-        flash('Доступ запрещен', 'danger')
-        return redirect(url_for('index'))
-
-    from .services import SubscriptionService
-
-    if request.method == 'POST':
-        subscription_type = request.form.get('subscription_type')
-
-        if subscription_type not in ['weekly', 'monthly']:
-            flash('Неверный тип абонемента', 'danger')
-            return redirect(url_for('user.purchase_subscription'))
-
-        success, result = SubscriptionService.purchase_subscription(current_user, subscription_type)
-
-        if success:
-            flash('Абонемент успешно приобретен!', 'success')
-            return redirect(url_for('user.my_subscriptions'))
-        else:
-            flash(f'Ошибка: {result}', 'danger')
-
-    return render_template('user/buy_subscription.html')
-
-
 @user_bp.route('/subscription/<int:subscription_id>/cancel', methods=['POST'])
 @login_required
 def cancel_subscription(subscription_id):
-    """Отмена абонемента"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('index'))
@@ -908,7 +793,6 @@ def cancel_subscription(subscription_id):
 @user_bp.route('/order/<int:order_id>/receive', methods=['POST'])
 @login_required
 def mark_order_received(order_id):
-    """Отметить заказ как полученный"""
     if current_user.role != 'student':
         flash('Доступ запрещен', 'danger')
         return redirect(url_for('user.my_orders'))
@@ -918,102 +802,107 @@ def mark_order_received(order_id):
 
     order = Order.query.get_or_404(order_id)
 
-    # Проверяем, что заказ принадлежит пользователю
     if order.user_id != current_user.id:
         flash('Это не ваш заказ', 'danger')
         return redirect(url_for('user.my_orders'))
 
-    # Проверяем, что заказ оплачен
     if order.payment_status != 'paid':
         flash('Сначала нужно оплатить заказ', 'danger')
         return redirect(url_for('user.my_orders'))
 
-    # Проверяем, что заказ на сегодня
     if order.order_date != date.today():
         flash('Заказ можно получить только в день его оформления', 'warning')
         return redirect(url_for('user.my_orders'))
 
-    # Отмечаем заказ как полученный
     order.status = 'received'
     db.session.commit()
 
     flash(f'Заказ #{order.id} отмечен как полученный!', 'success')
     return redirect(url_for('user.my_orders'))
 
+@user_bp.route('/buy-subscription', methods=['GET', 'POST'])
+@login_required
+def buy_subscription():
+    from modules.user.services import SubscriptionService
+
+    form = SubscriptionForm()
+
+    if form.validate_on_submit():
+        days = form.days.data
+
+        success, message, subscription = SubscriptionService.purchase_subscription(current_user, days)
+
+        if success:
+            flash(message, 'success')
+            return redirect(url_for('user.profile'))
+        else:
+            flash(message, 'danger')
+
+    return render_template('user/buy_subscription.html',
+                           form=form,
+                           current_balance=current_user.balance)
+
 
 @user_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    if current_user.role != 'student':
-        flash('Доступ запрещен', 'danger')
-        return redirect(url_for('index'))
-
-    from .forms import ProfileForm, BalanceForm
-    from modules.core.models import Order
-    from .services import SubscriptionService
+    from modules.user.services import SubscriptionService
+    from modules.core.models import Order, Transaction
 
     form = ProfileForm(obj=current_user)
     balance_form = BalanceForm()
 
-    # Устанавливаем email (только для отображения, не для изменения)
-    form.email.data = current_user.email
-
-    # Подсчет заказов пользователя
-    orders_count = Order.query.filter_by(user_id=current_user.id).count()
-
-    # Получаем активный абонемент
     active_subscription = SubscriptionService.get_active_subscription(current_user.id)
 
-    # Проверяем, какая форма была отправлена
-    if request.method == 'POST':
-        if 'submit' in request.form:  # Отправлена форма профиля
-            if form.validate_on_submit():
-                current_user.full_name = form.full_name.data
-                current_user.class_group = form.class_group.data
-                current_user.allergies = form.allergies.data
+    user_subscriptions = SubscriptionService.get_user_subscriptions(current_user.id)
 
-                # Добавляем preferences только если поле есть в форме
-                if hasattr(form, 'preferences'):
-                    current_user.preferences = form.preferences.data
+    orders_count = Order.query.filter_by(user_id=current_user.id).count()
 
-                # Обработка загрузки аватара (если поле есть в форме)
-                if hasattr(form, 'avatar') and form.avatar.data and form.avatar.data.filename:
-                    avatar_file = form.avatar.data
-                    if allowed_file(avatar_file.filename):
-                        # Создаем уникальное имя файла
-                        filename = secure_filename(
-                            f"user_{current_user.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{avatar_file.filename}")
+    if form.validate_on_submit():
+        if 'avatar' in request.files:
+            avatar_file = request.files['avatar']
+            if avatar_file and avatar_file.filename != '':
+                filename = save_avatar(avatar_file)
+                if filename:
+                    current_user.avatar_url = filename
 
-                        # Создаем папку для аватаров, если ее нет
-                        avatar_folder = 'static/uploads/avatars'
-                        os.makedirs(avatar_folder, exist_ok=True)
+        current_user.full_name = form.full_name.data
+        current_user.class_group = form.class_group.data
+        current_user.allergies = form.allergies.data
+        if hasattr(form, 'preferences'):
+            current_user.preferences = form.preferences.data
 
-                        # Удаляем старый аватар если есть
-                        if current_user.avatar_url:
-                            old_path = os.path.join(avatar_folder, current_user.avatar_url)
-                            if os.path.exists(old_path):
-                                os.remove(old_path)
+        db.session.commit()
+        flash('Профиль успешно обновлен!', 'success')
+        return redirect(url_for('user.profile'))
 
-                        # Сохраняем новый аватар
-                        avatar_path = os.path.join(avatar_folder, filename)
-                        avatar_file.save(avatar_path)
-                        current_user.avatar_url = filename
+    if balance_form.validate_on_submit():
+        amount = float(balance_form.amount.data)
+        current_user.balance += amount
 
-                db.session.commit()
-                flash('Профиль успешно обновлен!', 'success')
-                return redirect(url_for('user.profile'))
+        transaction = Transaction(
+            user_id=current_user.id,
+            amount=amount,
+            transaction_type='deposit',
+            status='completed',
+            description=f'Пополнение баланса через профиль'
+        )
 
-    # Рендерим шаблон с обеими формами
+        db.session.add(transaction)
+        db.session.commit()
+
+        flash(f'Баланс успешно пополнен на {amount:.2f} ₽!', 'success')
+        return redirect(url_for('user.profile'))
+
     return render_template('user/profile.html',
                            form=form,
                            balance_form=balance_form,
-                           orders_count=orders_count,
                            active_subscription=active_subscription,
-                           current_user=current_user)
+                           user_subscriptions=user_subscriptions,
+                           orders_count=orders_count)
 
 
 def allowed_file(filename):
-    """Проверка разрешенных расширений файлов"""
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

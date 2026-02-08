@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from flask_login import UserMixin
 from modules.core.database import db
+from datetime import datetime, timedelta
 
 
 class User(UserMixin, db.Model):
@@ -46,28 +47,64 @@ class MenuItem(db.Model):
 
 
 class Subscription(db.Model):
-    """Модель абонемента"""
+    """Модель абонемента на питание"""
     __tablename__ = 'subscriptions'
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    subscription_type = db.Column(db.String(20))  # 'weekly', 'monthly'
-    start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date, nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    meals_remaining = db.Column(db.Integer, default=0)  # Осталось приемов пищи
-    is_active = db.Column(db.Boolean, default=True)
+    days = db.Column(db.Integer, nullable=False)  # Количество дней
+    price = db.Column(db.Float, nullable=False)  # Сумма оплаты
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Связи
-    user = db.relationship('User', backref='subscriptions')
+    user = db.relationship('User', backref=db.backref('subscriptions', lazy=True))
 
     def __repr__(self):
-        return f'<Subscription {self.id} for User {self.user_id}>'
+        return f'<Subscription {self.id} for user {self.user_id}>'
+
+    @property
+    def days_remaining(self):
+        """Количество оставшихся дней"""
+        if not self.is_active:
+            return 0
+
+        # Получаем текущую дату как datetime
+        now = datetime.utcnow()
+
+        if self.end_date < now:
+            return 0
+
+        # Возвращаем разницу в днях
+        delta = self.end_date - now
+        days = delta.days
+
+        # Если осталось меньше дня, но еще не истекло
+        if delta.seconds > 0:
+            days += 1
+
+        return max(0, days)
+
+    @property
+    def status_text(self):
+        """Текстовый статус абонемента"""
+        if not self.is_active:
+            return "Неактивен"
+
+        days = self.days_remaining
+        if days == 0:
+            return "Истек"
+        elif days == 1:
+            return "Истекает сегодня"
+        elif days <= 7:
+            return f"Истекает через {days} дней"
+        else:
+            return f"Активен ({days} дней)"
 
 
 class Order(db.Model):
-    """Модель заказа"""
     __tablename__ = 'orders'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -75,24 +112,22 @@ class Order(db.Model):
     menu_item_id = db.Column(db.Integer, db.ForeignKey('menu_items.id'), nullable=True)
     subscription_id = db.Column(db.Integer, db.ForeignKey('subscriptions.id'), nullable=True)
     order_date = db.Column(db.Date, default=date.today, nullable=False)
-    meal_time = db.Column(db.String(20), nullable=False)  # 'breakfast', 'lunch'
+    meal_time = db.Column(db.String(20), nullable=False)
     quantity = db.Column(db.Integer, default=1)
 
-    # Статус заказа (процесс выполнения)
-    status = db.Column(db.String(20), default='pending')  # 'pending', 'preparing', 'ready', 'received', 'cancelled'
+    status = db.Column(db.String(20), default='pending')
 
     # Статус оплаты
-    payment_type = db.Column(db.String(20), default='single')  # 'single', 'subscription'
-    payment_status = db.Column(db.String(20), default='pending')  # 'pending', 'paid', 'failed', 'refunded'
-    refunded = db.Column(db.Boolean, default=False)  # Новое поле: возвращены ли средства
-    refund_amount = db.Column(db.Float, default=0.0)  # Новое поле: сумма возврата
-    refund_date = db.Column(db.DateTime, nullable=True)  # Новое поле: дата возврата
+    payment_type = db.Column(db.String(20), default='single')
+    payment_status = db.Column(db.String(20), default='pending')
+    refunded = db.Column(db.Boolean, default=False)
+    refund_amount = db.Column(db.Float, default=0.0)
+    refund_date = db.Column(db.DateTime, nullable=True)
 
     special_requests = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Связи
     user = db.relationship('User', backref='orders')
     menu_item = db.relationship('MenuItem', backref='orders')
     subscription = db.relationship('Subscription', backref='orders')
@@ -108,7 +143,6 @@ class Order(db.Model):
 
     @property
     def status_display(self):
-        """Человекочитаемый статус"""
         status_map = {
             'pending': 'Ожидает подтверждения',
             'preparing': 'В работе',
@@ -120,7 +154,6 @@ class Order(db.Model):
 
     @property
     def payment_status_display(self):
-        """Человекочитаемый статус оплаты"""
         status_map = {
             'pending': 'Ожидает оплаты',
             'paid': 'Оплачено',
@@ -131,7 +164,6 @@ class Order(db.Model):
 
 
 class Feedback(db.Model):
-    """Модель отзыва"""
     __tablename__ = 'feedbacks'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -145,33 +177,31 @@ class Feedback(db.Model):
         return f'<Feedback {self.id} ({self.rating} stars)>'
 
 
+# Добавьте или проверьте наличие этой модели в models.py
 class SupplyRequest(db.Model):
-    """Модель заявки на поставку"""
     __tablename__ = 'supply_requests'
 
     id = db.Column(db.Integer, primary_key=True)
     cook_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     product_name = db.Column(db.String(100), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    unit = db.Column(db.String(20))  # 'kg', 'liters', 'pieces', 'packages'
-    urgency = db.Column(db.String(20), default='normal')  # 'low', 'normal', 'high', 'critical'
-    status = db.Column(db.String(20), default='pending')  # 'pending', 'approved', 'rejected', 'delivered'
+    quantity = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), nullable=False)
+    urgency = db.Column(db.String(20), default='normal')
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected, cancelled
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    approval_date = db.Column(db.DateTime, nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Связи
     cook = db.relationship('User', foreign_keys=[cook_id])
     approver = db.relationship('User', foreign_keys=[approved_by])
 
     def __repr__(self):
-        return f'<SupplyRequest {self.id} for {self.product_name}>'
+        return f'<SupplyRequest {self.id}: {self.product_name}>'
 
 
 class Transaction(db.Model):
-    """Модель транзакций (история операций с балансом)"""
     __tablename__ = 'transactions'
 
     id = db.Column(db.Integer, primary_key=True)

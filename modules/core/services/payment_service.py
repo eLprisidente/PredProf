@@ -4,11 +4,9 @@ from modules.core.models import Order, Subscription
 
 
 class PaymentService:
-    """Сервис для обработки оплат"""
 
     @staticmethod
     def process_single_payment(order_id):
-        """Обработка разовой оплаты"""
         order = Order.query.get(order_id)
         if not order:
             return False, "Заказ не найден"
@@ -24,7 +22,6 @@ class PaymentService:
 
     @staticmethod
     def process_subscription_payment(user_id, subscription_type):
-        """Оформление абонемента"""
         from modules.core.models import User
 
         user = User.query.get(user_id)
@@ -48,7 +45,7 @@ class PaymentService:
 
         if subscription_type == 'weekly':
             end_date = start_date + timedelta(days=7)
-        else:  # monthly
+        else:
             end_date = start_date + timedelta(days=30)
 
         subscription = Subscription(
@@ -68,7 +65,6 @@ class PaymentService:
 
     @staticmethod
     def use_subscription_for_order(order_id, subscription_id):
-        """Использовать абонемент для оплаты заказа"""
         order = Order.query.get(order_id)
         subscription = Subscription.query.get(subscription_id)
 
@@ -101,7 +97,6 @@ class PaymentService:
 
     @staticmethod
     def check_subscription_status(user_id):
-        """Проверка статуса абонемента пользователя"""
         active_subscription = Subscription.query.filter_by(
             user_id=user_id,
             is_active=True

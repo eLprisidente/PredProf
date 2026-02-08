@@ -1,4 +1,3 @@
-<!-- templates/user/my_subscriptions.html -->
 {% extends "base.html" %}
 
 {% block title %}Мои абонементы{% endblock %}
@@ -11,14 +10,12 @@
     <p style="color: #7f8c8d; font-size: 1rem;">Управление вашими абонементами на питание</p>
 </div>
 
-<!-- Кнопка покупки нового абонемента -->
 <div style="text-align: right; margin-bottom: 30px;">
     <a href="{{ url_for('user.purchase_subscription') }}" class="btn" style="background: #27ae60;">
         <i class="bi bi-plus-circle"></i> Купить абонемент
     </a>
 </div>
 
-<!-- Активный абонемент -->
 {% if active_subscription %}
 <div class="dashboard-card" style="margin-bottom: 30px; border-left: 5px solid #27ae60;">
     <h2><i class="bi bi-star-fill" style="color: #f39c12;"></i> Активный абонемент</h2>
@@ -28,9 +25,9 @@
             <div style="font-size: 1.2rem; color: #7f8c8d; margin-bottom: 5px;">Тип</div>
             <div style="font-size: 1.5rem; font-weight: 700; color: #2c3e50;">
                 {% if active_subscription.subscription_type == 'weekly' %}
-                    Недельный
+                    Недельный - 7 Заказов
                 {% else %}
-                    Месячный
+                    Месячный - 30 Заказов
                 {% endif %}
             </div>
         </div>
@@ -57,7 +54,6 @@
         </div>
     </div>
     
-    <!-- Информация о экономии -->
     <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
         <div style="display: flex; align-items: center; gap: 10px;">
             <i class="bi bi-currency-dollar" style="color: #27ae60; font-size: 1.2rem;"></i>
@@ -85,7 +81,6 @@
 </div>
 {% endif %}
 
-<!-- История абонементов -->
 <div class="dashboard-card">
     <h2><i class="bi bi-clock-history"></i> История абонементов</h2>
     
@@ -173,7 +168,6 @@
     {% endif %}
 </div>
 
-<!-- Как работает абонемент -->
 <div class="dashboard-card" style="margin-top: 30px;">
     <h2><i class="bi bi-question-circle"></i> Как работает абонемент?</h2>
     

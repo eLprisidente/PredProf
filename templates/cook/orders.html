@@ -13,7 +13,6 @@
     </p>
 </div>
 
-<!-- Активные заказы (готовятся и готовы) -->
 {% if preparing_count > 0 or ready_count > 0 %}
 <div class="dashboard-card" style="margin-bottom: 30px; border-left: 5px solid #3498db;">
     <h2 style="color: #3498db; display: flex; justify-content: space-between; align-items: center;">
@@ -23,7 +22,6 @@
         </span>
     </h2>
 
-    <!-- Вкладки для активных заказов -->
     <div style="margin-bottom: 20px;">
         <div style="display: flex; gap: 10px; border-bottom: 2px solid #eee; padding-bottom: 10px;">
             <button class="active-tab-btn" data-tab="preparing" style="
@@ -57,7 +55,6 @@
         </div>
     </div>
 
-    <!-- Содержимое вкладки "Готовятся" -->
     <div id="preparing-tab" class="active-tab-content" style="display: block;">
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
             {% for order in breakfast_orders if order.status in ['pending', 'preparing'] %}
@@ -170,7 +167,6 @@
         </div>
     </div>
 
-    <!-- Содержимое вкладки "Готовы" -->
     <div id="ready-tab" class="active-tab-content" style="display: none;">
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
             {% for order in breakfast_orders if order.status == 'ready' %}
@@ -285,7 +281,6 @@
 </div>
 {% endif %}
 
-<!-- Объединенная таблица всех заказов -->
 <div class="dashboard-card">
     <h2 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <span><i class="bi bi-receipt"></i> Все заказы сегодня</span>
@@ -294,7 +289,6 @@
         </span>
     </h2>
 
-    <!-- Вкладки для фильтрации -->
     <div style="margin-bottom: 20px;">
         <div style="display: flex; gap: 10px; flex-wrap: wrap; border-bottom: 2px solid #eee; padding-bottom: 10px;">
             <button class="filter-tab-btn active" data-filter="all" style="
@@ -342,7 +336,6 @@
         </div>
     </div>
 
-    <!-- Таблица всех заказов -->
     <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
         <table class="admin-table" style="width: 100%; border-collapse: collapse;">
             <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 10;">
@@ -357,7 +350,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Завтраки -->
                 {% for order in breakfast_orders %}
                 <tr class="order-row" data-meal-time="breakfast" data-order-id="{{ order.id }}"
                     style="border-bottom: 1px solid #eee; {% if order.status == 'received' %}background: #f8fff9;{% elif order.status == 'cancelled' %}background: #fff8f8;{% endif %}">
@@ -421,7 +413,6 @@
                 </tr>
                 {% endfor %}
 
-                <!-- Обеды -->
                 {% for order in lunch_orders %}
                 <tr class="order-row" data-meal-time="lunch" data-order-id="{{ order.id }}"
                     style="border-bottom: 1px solid #eee; {% if order.status == 'received' %}background: #f8fff9;{% elif order.status == 'cancelled' %}background: #fff8f8;{% endif %}">
@@ -499,7 +490,7 @@
 
 {% block extra_css %}
 <style>
-/* Стили для карточек активных заказов */
+
 .active-order-card {
     transition: all 0.3s;
 }
@@ -523,7 +514,6 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
-/* Стили для таблицы */
 .table-responsive {
     scrollbar-width: thin;
     scrollbar-color: #bdc3c7 transparent;
@@ -548,7 +538,6 @@
     background: #95a5a6;
 }
 
-/* Стили для строк таблицы */
 .order-row:hover {
     background: #f8f9fa !important;
 }
@@ -561,7 +550,6 @@
     opacity: 0.5;
 }
 
-/* Статусы заказов */
 .order-status-badge {
     display: inline-block;
     padding: 6px 12px;
@@ -601,18 +589,15 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Переключение между вкладками активных заказов
     document.querySelectorAll('.active-tab-btn').forEach(button => {
         button.addEventListener('click', function() {
             const tabName = this.getAttribute('data-tab');
 
-            // Обновляем активные кнопки
             document.querySelectorAll('.active-tab-btn').forEach(btn => {
                 btn.style.opacity = '0.7';
             });
             this.style.opacity = '1';
 
-            // Показываем соответствующий контент
             document.querySelectorAll('.active-tab-content').forEach(content => {
                 content.style.display = 'none';
             });
@@ -620,12 +605,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Фильтрация по типу заказа
     document.querySelectorAll('.filter-tab-btn').forEach(button => {
         button.addEventListener('click', function() {
             const filter = this.getAttribute('data-filter');
 
-            // Обновляем активные кнопки
             document.querySelectorAll('.filter-tab-btn').forEach(btn => {
                 btn.classList.remove('active');
                 btn.style.opacity = '0.7';
@@ -633,7 +616,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             this.style.opacity = '1';
 
-            // Фильтруем строки таблицы
             document.querySelectorAll('.order-row').forEach(row => {
                 if (filter === 'all') {
                     row.style.display = '';
@@ -646,7 +628,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Обработчики кнопок для карточек активных заказов
     document.querySelectorAll('.mark-ready-btn').forEach(button => {
         button.addEventListener('click', function() {
             const orderId = this.getAttribute('data-order-id');
@@ -668,7 +649,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Функция для пометки заказа готовым
     function markOrderReady(orderId, button) {
         const originalText = button.innerHTML;
         button.innerHTML = '<i class="bi bi-hourglass-split"></i> Обработка...';
@@ -688,7 +668,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast('success', data.message);
                 updateNavbarCounts();
 
-                // Перезагружаем страницу для обновления счетчиков
                 setTimeout(() => {
                     location.reload();
                 }, 1000);
@@ -706,7 +685,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Функция для отметки заказа выданным
     function completeOrder(orderId, button) {
         const originalText = button.innerHTML;
         button.innerHTML = '<i class="bi bi-hourglass-split"></i> Обработка...';
@@ -726,7 +704,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast('success', data.message);
                 updateNavbarCounts();
 
-                // Перезагружаем страницу для обновления счетчиков
                 setTimeout(() => {
                     location.reload();
                 }, 1000);
@@ -744,7 +721,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Функция отмены заказа
     function cancelOrder(orderId, button) {
         if (!confirm('Вы уверены, что хотите отменить этот заказ?')) {
             return;
@@ -768,7 +744,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast('success', data.message);
                 updateNavbarCounts();
 
-                // Перезагружаем страницу для обновления счетчиков
                 setTimeout(() => {
                     location.reload();
                 }, 1000);
@@ -786,16 +761,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Обновление UI после изменения статуса
     function updateOrderUI(orderId, newStatus, statusDisplay) {
-        // Обновляем бейдж статуса в таблице
         const statusBadge = document.getElementById(`status-badge-${orderId}`);
         if (statusBadge) {
             statusBadge.className = `order-status-badge status-${newStatus}`;
             statusBadge.textContent = statusDisplay;
         }
 
-        // Обновляем кнопки действий в таблице
         const actionsDiv = document.getElementById(`actions-${orderId}`);
         if (actionsDiv) {
             if (newStatus === 'ready') {
@@ -814,7 +786,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </button>
                 `;
 
-                // Добавляем обработчики для новых кнопок
                 const completeBtn = actionsDiv.querySelector('.complete-order-btn');
                 if (completeBtn) {
                     completeBtn.addEventListener('click', function() {
@@ -832,7 +803,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 actionsDiv.innerHTML = '<span style="color: #7f8c8d; font-size: 0.85rem;">' +
                     (newStatus === 'received' ? 'Заказ выдан' : 'Заказ отменен') + '</span>';
 
-                // Обновляем фон строки
                 const row = document.querySelector(`tr[data-order-id="${orderId}"]`);
                 if (row) {
                     row.style.background = newStatus === 'received' ? '#f8fff9' : '#fff8f8';
@@ -841,7 +811,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Обновление счетчиков в навбаре
     function updateNavbarCounts() {
         fetch('/cook/api/order-counts')
         .then(response => response.json())
@@ -861,7 +830,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => console.error('Ошибка обновления счетчиков:', error));
     }
 
-    // Функция для показа уведомлений
     function showToast(type, message) {
         let toastContainer = document.getElementById('toast-container');
         if (!toastContainer) {
@@ -898,7 +866,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 
-    // Добавляем стили анимаций
     const style = document.createElement('style');
     style.textContent = `
         @keyframes slideIn {

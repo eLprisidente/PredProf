@@ -10,14 +10,12 @@
     <p style="color: #7f8c8d; font-size: 1rem;">Добавление и редактирование блюд</p>
 </div>
 
-<!-- Кнопка создания нового блюда -->
 <div style="text-align: right; margin-bottom: 30px;">
     <a href="{{ url_for('cook.new_menu_item') }}" class="btn" style="background: #27ae60;">
         <i class="bi bi-plus-circle"></i> Добавить блюдо
     </a>
 </div>
 
-<!-- Завтраки -->
 <div class="dashboard-card" style="margin-bottom: 30px;">
     <h2><i class="bi bi-sun"></i> Завтраки</h2>
 
@@ -25,7 +23,6 @@
     <div class="menu-items-list">
         {% for item in breakfast_items %}
         <div class="menu-item-card">
-            <!-- Изображение блюда -->
             <div style="margin-bottom: 15px; text-align: center;">
                 {% if item.image_url %}
                 <img src="{{ url_for('static', filename='uploads/menu_items/' + item.image_url) }}"
@@ -78,7 +75,6 @@
             </div>
             {% endif %}
 
-            <!-- Кнопки управления -->
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <a href="{{ url_for('cook.edit_menu_item', item_id=item.id) }}"
                    class="btn"
@@ -121,7 +117,6 @@
     {% endif %}
 </div>
 
-<!-- Обеды -->
 <div class="dashboard-card" style="margin-bottom: 30px;">
     <h2><i class="bi bi-moon"></i> Обеды</h2>
 
@@ -129,7 +124,6 @@
     <div class="menu-items-list">
         {% for item in lunch_items %}
         <div class="menu-item-card">
-            <!-- Изображение блюда -->
             <div style="margin-bottom: 15px; text-align: center;">
                 {% if item.image_url %}
                 <img src="{{ url_for('static', filename='uploads/menu_items/' + item.image_url) }}"
@@ -182,7 +176,6 @@
             </div>
             {% endif %}
 
-            <!-- Кнопки управления -->
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <a href="{{ url_for('cook.edit_menu_item', item_id=item.id) }}"
                    class="btn"
@@ -225,7 +218,6 @@
     {% endif %}
 </div>
 
-<!-- Перекусы -->
 {% if snack_items %}
 <div class="dashboard-card">
     <h2><i class="bi bi-cup-hot"></i> Перекусы</h2>
@@ -233,7 +225,6 @@
     <div class="menu-items-list">
         {% for item in snack_items %}
         <div class="menu-item-card">
-            <!-- Изображение блюда -->
             <div style="margin-bottom: 15px; text-align: center;">
                 {% if item.image_url %}
                 <img src="{{ url_for('static', filename='uploads/menu_items/' + item.image_url) }}"
@@ -286,7 +277,6 @@
             </div>
             {% endif %}
 
-            <!-- Кнопки управления -->
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <a href="{{ url_for('cook.edit_menu_item', item_id=item.id) }}"
                    class="btn"
@@ -406,7 +396,6 @@
     opacity: 0.9;
 }
 
-/* Стили для кнопок в ряд */
 .menu-item-card > div:last-child {
     display: flex;
     gap: 10px;
@@ -422,43 +411,36 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Обработка кнопок переключения доступности
     document.querySelectorAll('.toggle-availability-btn').forEach(button => {
         button.addEventListener('click', function() {
             const itemId = this.getAttribute('data-item-id');
             const button = this;
             const badge = document.getElementById('availability-' + itemId);
 
-            // Показываем индикатор загрузки
             const originalText = button.innerHTML;
             button.innerHTML = '<i class="bi bi-hourglass-split"></i> Загрузка...';
             button.disabled = true;
 
-            // Отправляем POST запрос на сервер
             fetch(`/cook/menu/${itemId}/toggle`, {
                 method: 'POST'
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Обновляем бейдж доступности
                     if (data.available) {
                         badge.className = 'availability-badge available';
                         badge.innerHTML = '<i class="bi bi-check-circle"></i> Доступно';
 
-                        // Обновляем кнопку
                         button.innerHTML = '<i class="bi bi-power"></i> Отключить';
                         button.style.background = '#f39c12';
                     } else {
                         badge.className = 'availability-badge unavailable';
                         badge.innerHTML = '<i class="bi bi-x-circle"></i> Недоступно';
 
-                        // Обновляем кнопку
                         button.innerHTML = '<i class="bi bi-power"></i> Включить';
                         button.style.background = '#27ae60';
                     }
 
-                    // Показываем уведомление
                     showToast('success', data.message);
                 } else {
                     showToast('error', data.message);
@@ -476,9 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Функция для показа уведомлений
     function showToast(type, message) {
-        // Создаем контейнер для тостов, если его нет
         let toastContainer = document.getElementById('toast-container');
         if (!toastContainer) {
             toastContainer = document.createElement('div');
@@ -487,7 +467,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.appendChild(toastContainer);
         }
 
-        // Создаем тост
         const toast = document.createElement('div');
         toast.style.cssText = `
             background: ${type === 'success' ? '#27ae60' : '#e74c3c'};
@@ -509,7 +488,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         toastContainer.appendChild(toast);
 
-        // Удаляем тост через 3 секунды
         setTimeout(() => {
             toast.style.animation = 'slideOut 0.3s ease-in';
             setTimeout(() => {
@@ -518,7 +496,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 
-    // Добавляем стили для анимации
     const style = document.createElement('style');
     style.textContent = `
         @keyframes slideIn {
