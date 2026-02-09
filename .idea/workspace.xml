@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="384db4b7-ae9f-4069-b2be-230614ad11aa" name="Changes" comment="final version v2 - release">
+    <list default="true" id="384db4b7-ae9f-4069-b2be-230614ad11aa" name="Changes" comment="final version v4 - release">
       <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/README.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.txt" beforeDir="false" afterPath="$PROJECT_DIR$/README.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -228,7 +227,15 @@
       <option name="project" value="LOCAL" />
       <updated>1770638491102</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="final version v4 - release">
+      <option name="closed" value="true" />
+      <created>1770668478747</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1770668478747</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -249,6 +256,7 @@
     <MESSAGE value="test version" />
     <MESSAGE value="final version - release" />
     <MESSAGE value="final version v2 - release" />
-    <option name="LAST_COMMIT_MESSAGE" value="final version v2 - release" />
+    <MESSAGE value="final version v4 - release" />
+    <option name="LAST_COMMIT_MESSAGE" value="final version v4 - release" />
   </component>
 </project>
