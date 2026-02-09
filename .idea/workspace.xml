@@ -4,19 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="384db4b7-ae9f-4069-b2be-230614ad11aa" name="Changes" comment="final version - release">
-      <change afterPath="$PROJECT_DIR$/migrations/update_foreign_keys.py" afterDir="false" />
+    <list default="true" id="384db4b7-ae9f-4069-b2be-230614ad11aa" name="Changes" comment="final version v2 - release">
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/instance/school_cafeteria.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/admin/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/admin/routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/auth/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/auth/forms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/auth/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/auth/routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/core/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/modules/user/routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/modules/user/routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/admin/users.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/users.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/auth/register.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/auth/register.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/user/cart.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user/cart.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -205,7 +196,39 @@
       <option name="project" value="LOCAL" />
       <updated>1770571292499</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="final version v2 - release">
+      <option name="closed" value="true" />
+      <created>1770638331613</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1770638331613</updated>
+    </task>
+    <task id="LOCAL-00009" summary="final version v2 - release">
+      <option name="closed" value="true" />
+      <created>1770638343624</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1770638343624</updated>
+    </task>
+    <task id="LOCAL-00010" summary="final version v2 - release">
+      <option name="closed" value="true" />
+      <created>1770638451540</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1770638451540</updated>
+    </task>
+    <task id="LOCAL-00011" summary="final version v2 - release">
+      <option name="closed" value="true" />
+      <created>1770638491102</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1770638491102</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -225,6 +248,7 @@
     <MESSAGE value="Pipenv version" />
     <MESSAGE value="test version" />
     <MESSAGE value="final version - release" />
-    <option name="LAST_COMMIT_MESSAGE" value="final version - release" />
+    <MESSAGE value="final version v2 - release" />
+    <option name="LAST_COMMIT_MESSAGE" value="final version v2 - release" />
   </component>
 </project>
